@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smart Traffic-Light Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Smart Traffic-Light Dashboard</h1>
+        <p id="connection-status">Idle</p>
+      </div>
+      <button id="run-button" type="button">Run</button>
+      <button id="benchmark-button" type="button">Benchmark</button>
+    </header>
+
+    <main class="layout">
+      <section class="control-panel" aria-label="Simulation controls">
+        <label>
+          Controller
+          <select id="controller">
+            <option value="adaptive">Adaptive</option>
+            <option value="fixed">Fixed-time</option>
+          </select>
+        </label>
+        <label>
+          Scenario
+          <select id="scenario">
+            <option value="ns-heavy">NS-heavy</option>
+            <option value="ew-heavy">EW-heavy</option>
+            <option value="balanced">Balanced</option>
+          </select>
+        </label>
+        <label>
+          Duration
+          <input id="duration" type="number" min="5" max="7200" step="5" value="120" />
+        </label>
+        <label>
+          Step
+          <input id="step" type="number" min="0.1" max="10" step="0.1" value="1" />
+        </label>
+        <label>
+          Seed
+          <input id="seed" type="number" value="42" />
+        </label>
+      </section>
+
+      <section class="intersection-panel" aria-label="Intersection state">
+        <div class="phase-strip">
+          <strong id="phase">all_red_to_ns</strong>
+          <span id="phase-time">0.0s</span>
+          <span id="reason">startup</span>
+        </div>
+
+        <svg class="intersection" viewBox="0 0 640 640" role="img" aria-label="Live intersection">
+          <rect x="0" y="0" width="640" height="640" class="ground" />
+          <rect x="260" y="0" width="120" height="640" class="road" />
+          <rect x="0" y="260" width="640" height="120" class="road" />
+          <g id="active-layer"></g>
+          <line x1="320" y1="0" x2="320" y2="260" class="lane" />
+          <line x1="320" y1="380" x2="320" y2="640" class="lane" />
+          <line x1="0" y1="320" x2="260" y2="320" class="lane" />
+          <line x1="380" y1="320" x2="640" y2="320" class="lane" />
+          <line x1="260" y1="220" x2="380" y2="220" class="stop" />
+          <line x1="260" y1="420" x2="380" y2="420" class="stop" />
+          <line x1="220" y1="260" x2="220" y2="380" class="stop" />
+          <line x1="420" y1="260" x2="420" y2="380" class="stop" />
+
+          <g id="vehicle-layer"></g>
+
+          <g class="light-head north-light" transform="translate(400 198)">
+            <rect width="36" height="86" rx="8" />
+            <circle id="north-red" cx="18" cy="18" r="9" class="lamp red" />
+            <circle id="north-amber" cx="18" cy="43" r="9" class="lamp amber" />
+            <circle id="north-green" cx="18" cy="68" r="9" class="lamp green" />
+          </g>
+          <g class="light-head south-light" transform="translate(204 356)">
+            <rect width="36" height="86" rx="8" />
+            <circle id="south-red" cx="18" cy="18" r="9" class="lamp red" />
+            <circle id="south-amber" cx="18" cy="43" r="9" class="lamp amber" />
+            <circle id="south-green" cx="18" cy="68" r="9" class="lamp green" />
+          </g>
+          <g class="light-head east-light" transform="translate(356 400) rotate(-90)">
+            <rect width="36" height="86" rx="8" />
+            <circle id="east-red" cx="18" cy="18" r="9" class="lamp red" />
+            <circle id="east-amber" cx="18" cy="43" r="9" class="lamp amber" />
+            <circle id="east-green" cx="18" cy="68" r="9" class="lamp green" />
+          </g>
+          <g class="light-head west-light" transform="translate(284 204) rotate(90)">
+            <rect width="36" height="86" rx="8" />
+            <circle id="west-red" cx="18" cy="18" r="9" class="lamp red" />
+            <circle id="west-amber" cx="18" cy="43" r="9" class="lamp amber" />
+            <circle id="west-green" cx="18" cy="68" r="9" class="lamp green" />
+          </g>
+
+          <text x="320" y="46" text-anchor="middle" class="approach-label">N</text>
+          <text x="594" y="333" text-anchor="middle" class="approach-label">E</text>
+          <text x="320" y="610" text-anchor="middle" class="approach-label">S</text>
+          <text x="46" y="333" text-anchor="middle" class="approach-label">W</text>
+        </svg>
+      </section>
+
+      <section class="metrics-panel" aria-label="Metrics">
+        <div class="metric-grid">
+          <article>
+            <span>Completed</span>
+            <strong id="completed">0</strong>
+          </article>
+          <article>
+            <span>Mean wait</span>
+            <strong id="mean-wait">-</strong>
+          </article>
+          <article>
+            <span>Max queue</span>
+            <strong id="max-queue">0</strong>
+          </article>
+          <article>
+            <span>Safety violations</span>
+            <strong id="violations">0</strong>
+          </article>
+        </div>
+
+        <div class="queue-list">
+          <div class="queue-row"><span>North</span><meter id="queue-north" min="0" max="80" value="0"></meter><strong id="queue-north-value">0</strong></div>
+          <div class="queue-row"><span>East</span><meter id="queue-east" min="0" max="80" value="0"></meter><strong id="queue-east-value">0</strong></div>
+          <div class="queue-row"><span>South</span><meter id="queue-south" min="0" max="80" value="0"></meter><strong id="queue-south-value">0</strong></div>
+          <div class="queue-row"><span>West</span><meter id="queue-west" min="0" max="80" value="0"></meter><strong id="queue-west-value">0</strong></div>
+        </div>
+
+        <svg class="history-chart" viewBox="0 0 600 160" role="img" aria-label="Queue history">
+          <line x1="32" y1="132" x2="584" y2="132" class="axis" />
+          <line x1="32" y1="16" x2="32" y2="132" class="axis" />
+          <polyline id="history-line" points="" class="history-line" />
+        </svg>
+      </section>
+
+      <section class="runs-panel" aria-label="Recent runs">
+        <h2>Recent Runs</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Scenario</th>
+              <th>Controller</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="runs-body"></tbody>
+        </table>
+      </section>
+
+      <section class="benchmark-panel" aria-label="Fixed versus adaptive benchmark">
+        <div class="section-heading">
+          <h2>Fixed vs Adaptive</h2>
+          <span id="benchmark-status">Not run</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Seed</th>
+              <th>Controller</th>
+              <th>Completed</th>
+              <th>Mean wait</th>
+              <th>Max queue</th>
+              <th>Wait improvement</th>
+              <th>Violations</th>
+            </tr>
+          </thead>
+          <tbody id="benchmark-body"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
