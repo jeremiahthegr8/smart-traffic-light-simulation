@@ -15,6 +15,7 @@ therefore use the same control logic.
 - SQLite run, event, detector, and queue-metric logging.
 - Browser dashboard with live intersection state, queue metrics, and visible vehicles.
 - Fixed-vs-adaptive benchmark runner with CSV export.
+- GPIO Zero signal adapter with testable pin mapping.
 - CLI simulation summary.
 - pytest safety and scenario tests.
 
@@ -80,5 +81,19 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Add GPIO Zero adapter with mock-pin tests.
-2. Add Raspberry Pi deployment service.
+1. Add Raspberry Pi deployment service.
+2. Add wiring diagram and hardware setup notes.
+
+## Hardware Pin Map
+
+The GPIO adapter uses BCM pin numbering.
+
+| Approach | Red | Amber | Green |
+|---|---:|---:|---:|
+| North | 2 | 3 | 4 |
+| East | 17 | 27 | 22 |
+| South | 10 | 9 | 11 |
+| West | 5 | 6 | 13 |
+
+Each LED must use a suitable resistor. Raspberry Pi GPIO pins are 3.3 V logic pins.
+Do not connect LEDs directly without current limiting.

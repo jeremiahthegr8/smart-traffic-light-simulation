@@ -65,5 +65,6 @@ Each fixed/adaptive comparison must use the same scenario, duration, step size, 
 - FastAPI status endpoints and WebSocket stream: complete for MVP.
 - Browser dashboard with visible vehicle queues: complete for MVP.
 - Fixed-vs-adaptive benchmark and CSV export: complete for MVP.
+- GPIO Zero signal adapter and pinmap tests: complete for MVP.
 - Tests: initial safety, scenario, storage, and API coverage complete.
-- GPIO/deployment: pending.
+- Deployment and wiring documentation: pending.
