@@ -52,8 +52,14 @@ Open `http://127.0.0.1:8000/`.
 Run a fixed-vs-adaptive benchmark and export CSV:
 
 ```powershell
-python scripts/benchmark.py --duration 300 --step 0.5 --seeds 5 --csv results/benchmark.csv
+python scripts/benchmark.py --duration 300 --step 0.5 --seeds 5 --csv results/benchmark.csv --summary-csv results/benchmark_summary.csv --charts results/charts
 ```
+
+The benchmark script writes:
+
+- row-level CSV results
+- aggregate summary CSV
+- SVG charts for mean wait, max queue, and completed vehicles
 
 ## Scenarios
 
@@ -86,7 +92,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Add report-ready charts and benchmark summary export.
-2. Add more scenario/failure tests, including detector stuck-high/stuck-low simulation.
-3. Add a results notebook or script for dissertation tables.
-
+1. Add more scenario/failure tests, including detector stuck-high/stuck-low simulation.
+2. Add a results notebook or script for dissertation tables.

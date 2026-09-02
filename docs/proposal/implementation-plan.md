@@ -85,6 +85,6 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Browser dashboard with visible vehicle queues: complete for MVP.
 - Fixed-vs-adaptive benchmark and CSV export: complete for MVP.
 - Aggregate benchmark statistics: complete for MVP.
+- Report-ready chart and summary export: complete for MVP.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
-- Report-ready charts and failure-mode simulation: pending.
-
+- Failure-mode simulation and dissertation table scripts: pending.
