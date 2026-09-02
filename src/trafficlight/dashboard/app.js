@@ -353,7 +353,7 @@ async function runBenchmark() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        scenarios: ["balanced", "ns-heavy", "ew-heavy"],
+        scenarios: ["balanced", "ns-heavy", "ew-heavy", "ns-burst", "alternating-peak"],
         seeds: [Number(elements.seed.value)],
         duration_s: Number(elements.duration.value),
         step_s: Number(elements.step.value),

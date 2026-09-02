@@ -1,30 +1,29 @@
-# Smart Traffic-Light Controller
+# Smart Traffic-Light Simulation
 
-Simulation-first adaptive traffic-light controller for a final-year Raspberry Pi project.
+Adaptive traffic-light control project implemented as a full software simulation.
 
-The important design decision is that the controller does not know about GPIO. It talks to
-small interfaces for signals, detectors, and clocks. Simulation and Raspberry Pi hardware can
-therefore use the same control logic.
+This branch intentionally removes Raspberry Pi and GPIO hardware from the project scope. The
+focus is now the controller algorithm, live simulation dashboard, repeatable experiments, data
+logging, and fixed-vs-adaptive evaluation.
 
-## Current MVP
+## Current Scope
 
 - Safe four-way phase state machine for North/South and East/West movements.
 - Fixed-time controller baseline.
 - Adaptive controller that changes green duration from demand while enforcing min/max green.
-- Simulated signal driver and traffic queue model.
+- Time-varying traffic scenarios with repeatable random seeds.
 - SQLite run, event, detector, and queue-metric logging.
 - Browser dashboard with live intersection state, queue metrics, and visible vehicles.
-- Fixed-vs-adaptive benchmark runner with CSV export.
-- GPIO Zero signal adapter with testable pin mapping.
-- CLI simulation summary.
-- pytest safety and scenario tests.
+- Fixed-vs-adaptive benchmark runner with CSV export and aggregate statistics.
+- FastAPI API and WebSocket stream.
+- pytest safety, scenario, storage, benchmark, and API tests.
 
 ## Setup
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,api]"
 pytest
 ```
 
@@ -42,22 +41,29 @@ terminal output:
 python -m trafficlight.main --controller adaptive --duration 300 --scenario ns-heavy --no-db
 ```
 
-Run the API:
+Run the dashboard:
 
 ```powershell
-python -m pip install -e ".[api]"
 uvicorn trafficlight.api.app:app --reload
 ```
 
-Open the dashboard at `http://127.0.0.1:8000/`.
+Open `http://127.0.0.1:8000/`.
 
 Run a fixed-vs-adaptive benchmark and export CSV:
 
 ```powershell
-python scripts/benchmark.py --duration 300 --step 0.5 --csv results/benchmark.csv
+python scripts/benchmark.py --duration 300 --step 0.5 --seeds 5 --csv results/benchmark.csv
 ```
 
-Useful endpoints:
+## Scenarios
+
+- `balanced`: similar demand on all four approaches.
+- `ns-heavy`: North/South demand is much higher than East/West demand.
+- `ew-heavy`: East/West demand is much higher than North/South demand.
+- `ns-burst`: short North/South demand surge during moderate traffic.
+- `alternating-peak`: demand shifts from North/South to East/West during the run.
+
+## API
 
 - `GET /health`
 - `GET /api/scenarios`
@@ -72,28 +78,15 @@ Useful endpoints:
 ```text
 src/trafficlight/
   domain/        core models, safety checks, fixed/adaptive controllers
-  interfaces/    small protocols for hardware-independent code
-  simulation/    virtual signals and traffic queue simulator
-  hardware/      Raspberry Pi adapters will live here
-  api/           FastAPI dashboard/API will live here
-  storage/       SQLite logging will live here
+  interfaces/    small protocols for simulation services
+  simulation/    traffic scenarios, queue engine, benchmark runner
+  api/           FastAPI dashboard/API
+  storage/       SQLite logging
 ```
 
 ## Next Milestones
 
-1. Add Raspberry Pi deployment service.
-2. Add wiring diagram and hardware setup notes.
+1. Add report-ready charts and benchmark summary export.
+2. Add more scenario/failure tests, including detector stuck-high/stuck-low simulation.
+3. Add a results notebook or script for dissertation tables.
 
-## Hardware Pin Map
-
-The GPIO adapter uses BCM pin numbering.
-
-| Approach | Red | Amber | Green |
-|---|---:|---:|---:|
-| North | 2 | 3 | 4 |
-| East | 17 | 27 | 22 |
-| South | 10 | 9 | 11 |
-| West | 5 | 6 | 13 |
-
-Each LED must use a suitable resistor. Raspberry Pi GPIO pins are 3.3 V logic pins.
-Do not connect LEDs directly without current limiting.

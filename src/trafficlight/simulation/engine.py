@@ -16,7 +16,6 @@ StepObserver = Callable[[dict], None]
 
 @dataclass
 class ApproachQueue:
-    arrival_rate_per_minute: float
     queue: int = 0
     total_arrivals: int = 0
     total_departures: int = 0
@@ -24,8 +23,8 @@ class ApproachQueue:
     _arrival_credit: float = 0.0
     _discharge_credit: float = 0.0
 
-    def add_arrivals(self, dt_s: float, rng: random.Random) -> None:
-        self._arrival_credit += (self.arrival_rate_per_minute / 60.0) * dt_s
+    def add_arrivals(self, arrival_rate_per_minute: float, dt_s: float, rng: random.Random) -> None:
+        self._arrival_credit += (arrival_rate_per_minute / 60.0) * dt_s
         whole = int(self._arrival_credit)
         self._arrival_credit -= whole
         extra = 1 if rng.random() < self._arrival_credit else 0
@@ -89,7 +88,7 @@ class SimulationEngine:
         self.logger = logger
         self.on_step = on_step
         self.queues = {
-            approach: ApproachQueue(scenario.arrivals_per_minute[approach])
+            approach: ApproachQueue()
             for approach in APPROACHES
         }
         self.max_queue = 0
@@ -99,8 +98,12 @@ class SimulationEngine:
         run_id = self._start_logged_run()
         elapsed = 0.0
         while elapsed < self.duration_s:
-            for queue in self.queues.values():
-                queue.add_arrivals(self.step_s, self.rng)
+            for approach, queue in self.queues.items():
+                queue.add_arrivals(
+                    self.scenario.arrival_rate_for(approach, elapsed),
+                    self.step_s,
+                    self.rng,
+                )
 
             demand = self._demand_snapshot(elapsed)
             status = self.controller.tick(self.step_s, demand)

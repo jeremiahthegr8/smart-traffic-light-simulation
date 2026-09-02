@@ -1,2 +1,1 @@
-"""Simulation support for development without hardware."""
-
+"""Traffic simulation support."""

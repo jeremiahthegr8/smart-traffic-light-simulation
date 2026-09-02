@@ -1,28 +1,43 @@
-# Smart Traffic-Light Implementation Plan
+# Smart Traffic-Light Simulation Implementation Plan
 
-This plan distills the research brief into the work that belongs in this repository.
+This branch changes the project direction from Raspberry Pi hardware to a total software
+simulation.
 
 ## Project Goal
 
-Build a simulation-first adaptive four-way traffic-light controller that can later run on a
-Raspberry Pi through a replaceable GPIO adapter.
+Build and evaluate an adaptive four-way smart traffic-light controller using repeatable
+simulation, live visualisation, database logging, and fixed-vs-adaptive benchmarks.
 
 The core claim to prove is:
 
-> The adaptive controller reduces waiting time or queue length compared with a fixed-time
-> baseline under unequal traffic demand, while maintaining zero conflicting-green violations.
+> The adaptive controller reduces waiting time and/or queue length compared with a fixed-time
+> baseline under unequal or changing traffic demand, while maintaining zero conflicting-green
+> violations.
 
-## MVP Scope
+## Scope
 
 - North/South and East/West phase groups.
 - Explicit green, amber, and all-red clearance states.
 - Fixed-time baseline controller.
-- Adaptive controller based on detected demand.
-- Hardware-independent signal and detector interfaces.
-- Lightweight simulator with repeatable random seeds.
+- Adaptive controller based on detected queue demand.
+- Simulation-only signal and detector abstractions.
+- Time-varying traffic scenarios with repeatable seeds.
 - SQLite run/event/metric logging.
-- Safety tests for conflicting greens and max-green enforcement.
-- CLI command for fixed-vs-adaptive experiment runs.
+- Browser dashboard with live vehicle visualisation.
+- Fixed-vs-adaptive benchmark runner.
+- CSV export for dissertation results.
+- Automated safety, scenario, storage, benchmark, and API tests.
+
+## Not In Scope
+
+- Raspberry Pi deployment.
+- GPIO wiring.
+- Physical LEDs.
+- Camera hardware.
+- Public-road use.
+
+The previous hardware-capable version is preserved on `master`. This branch is for the
+simulation-only project direction.
 
 ## Implementation Order
 
@@ -33,18 +48,22 @@ The core claim to prove is:
 5. Simulation engine and scenario tests.
 6. SQLite run/event/metric logging.
 7. FastAPI status API and WebSocket stream.
-8. Browser dashboard.
+8. Browser dashboard with visible vehicles.
 9. Fixed-vs-adaptive benchmark and CSV export.
-10. GPIO Zero signal adapter.
-11. Raspberry Pi deployment service.
+10. Aggregate benchmark statistics.
+11. Report-ready charts and experiment tables.
+12. Failure-mode simulation.
 
 ## Experiment Scenarios
 
 - `balanced`: similar demand on all approaches.
 - `ns-heavy`: higher North/South demand than East/West.
 - `ew-heavy`: higher East/West demand than North/South.
+- `ns-burst`: a short North/South demand surge.
+- `alternating-peak`: demand shifts from North/South to East/West.
 
 Each fixed/adaptive comparison must use the same scenario, duration, step size, and seed.
+For final reporting, run multiple seeds and report average, spread, and safety violations.
 
 ## Safety Rules
 
@@ -53,18 +72,19 @@ Each fixed/adaptive comparison must use the same scenario, duration, step size, 
 - Every green phase must pass through amber before all-red clearance.
 - All-red clearance must occur before the opposing movement receives green.
 - Adaptive logic may change green duration, but it may not bypass safety states.
-- Maximum green prevents sensor faults or heavy demand from starving the opposing group.
+- Maximum green prevents heavy demand from starving the opposing group.
 
 ## Current Status
 
 - Repository skeleton: complete.
 - Fixed-time controller: complete for MVP.
 - Adaptive controller: complete for MVP.
-- Simulator: complete for MVP.
+- Time-varying simulator: complete for MVP.
 - SQLite logging: complete for MVP.
 - FastAPI status endpoints and WebSocket stream: complete for MVP.
 - Browser dashboard with visible vehicle queues: complete for MVP.
 - Fixed-vs-adaptive benchmark and CSV export: complete for MVP.
-- GPIO Zero signal adapter and pinmap tests: complete for MVP.
-- Tests: initial safety, scenario, storage, and API coverage complete.
-- Deployment and wiring documentation: pending.
+- Aggregate benchmark statistics: complete for MVP.
+- Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
+- Report-ready charts and failure-mode simulation: pending.
+

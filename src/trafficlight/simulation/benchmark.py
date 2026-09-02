@@ -29,7 +29,7 @@ class BenchmarkRow:
 
 def run_benchmark(
     *,
-    scenarios: list[str] | tuple[str, ...] = ("balanced", "ns-heavy", "ew-heavy"),
+    scenarios: list[str] | tuple[str, ...] = tuple(SCENARIOS),
     seeds: list[int] | tuple[int, ...] = (42,),
     duration_s: float = 300.0,
     step_s: float = 0.5,
@@ -67,6 +67,38 @@ def write_benchmark_csv(rows: list[BenchmarkRow], path: str | Path) -> Path:
 
 def benchmark_rows_to_dicts(rows: list[BenchmarkRow]) -> list[dict]:
     return [row.__dict__ for row in rows]
+
+
+def aggregate_benchmark(rows: list[BenchmarkRow]) -> list[dict]:
+    grouped: dict[tuple[str, str], list[BenchmarkRow]] = {}
+    for row in rows:
+        grouped.setdefault((row.scenario, row.controller), []).append(row)
+
+    aggregates = []
+    for (scenario, controller), group in sorted(grouped.items()):
+        aggregates.append(
+            {
+                "scenario": scenario,
+                "controller": controller,
+                "runs": len(group),
+                "mean_completed": _mean(row.completed for row in group),
+                "mean_wait_s": _mean(row.mean_wait_s for row in group),
+                "mean_max_queue": _mean(row.max_queue for row in group),
+                "total_conflicting_green_violations": sum(
+                    row.conflicting_green_violations for row in group
+                ),
+                "mean_completed_delta_vs_fixed": _mean_or_none(
+                    row.completed_delta_vs_fixed for row in group
+                ),
+                "mean_wait_improvement_pct": _mean_or_none(
+                    row.mean_wait_improvement_pct for row in group
+                ),
+                "mean_max_queue_improvement_pct": _mean_or_none(
+                    row.max_queue_improvement_pct for row in group
+                ),
+            }
+        )
+    return aggregates
 
 
 def _run_one(
@@ -119,3 +151,14 @@ def _improvement_pct(baseline: float, candidate: float) -> float | None:
         return None
     return ((baseline - candidate) / baseline) * 100.0
 
+
+def _mean(values) -> float:
+    values = list(values)
+    return sum(values) / len(values) if values else 0.0
+
+
+def _mean_or_none(values) -> float | None:
+    values = [value for value in values if value is not None]
+    if not values:
+        return None
+    return sum(values) / len(values)
