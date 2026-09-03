@@ -15,6 +15,7 @@ logging, and fixed-vs-adaptive evaluation.
 - SQLite run, event, detector, and queue-metric logging.
 - Browser dashboard with live intersection state, queue metrics, and visible vehicles.
 - Fixed-vs-adaptive benchmark runner with CSV export and aggregate statistics.
+- Detector fault simulation for stuck-high and stuck-low demand readings.
 - FastAPI API and WebSocket stream.
 - pytest safety, scenario, storage, benchmark, and API tests.
 
@@ -61,6 +62,12 @@ The benchmark script writes:
 - aggregate summary CSV
 - SVG charts for mean wait, max queue, and completed vehicles
 
+Run detector fault simulations:
+
+```powershell
+python scripts/failure_modes.py --scenario ns-heavy --duration 300 --step 0.5 --seeds 5 --csv results/failure_modes.csv
+```
+
 ## Scenarios
 
 - `balanced`: similar demand on all four approaches.
@@ -92,5 +99,4 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Add more scenario/failure tests, including detector stuck-high/stuck-low simulation.
-2. Add a results notebook or script for dissertation tables.
+1. Add a results notebook or script for dissertation tables.

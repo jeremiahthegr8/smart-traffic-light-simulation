@@ -8,6 +8,7 @@ from trafficlight.domain.adaptive import AdaptiveController
 from trafficlight.domain.fixed_time import FixedTimeController
 from trafficlight.domain.models import TimingConfig
 from trafficlight.simulation.engine import SimulationEngine
+from trafficlight.simulation.faults import SensorFault
 from trafficlight.simulation.scenarios import SCENARIOS
 from trafficlight.simulation.signals import SimulatedSignalDriver
 from trafficlight.storage.database import connect_database
@@ -35,6 +36,7 @@ def run_simulation(
     db_path: Path | None = None,
     sample_interval_s: float = 1.0,
     on_step: StepObserver | None = None,
+    sensor_faults: tuple[SensorFault, ...] = (),
 ) -> dict:
     if scenario_name not in SCENARIOS:
         raise ValueError(f"unknown scenario: {scenario_name}")
@@ -63,9 +65,9 @@ def run_simulation(
             seed=seed,
             logger=logger,
             on_step=on_step,
+            sensor_faults=sensor_faults,
         )
         return asdict(engine.run())
     finally:
         if connection is not None:
             connection.close()
-

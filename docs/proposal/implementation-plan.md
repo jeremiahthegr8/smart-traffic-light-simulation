@@ -26,6 +26,7 @@ The core claim to prove is:
 - Browser dashboard with live vehicle visualisation.
 - Fixed-vs-adaptive benchmark runner.
 - CSV export for dissertation results.
+- Detector fault simulation for stuck-high and stuck-low readings.
 - Automated safety, scenario, storage, benchmark, and API tests.
 
 ## Not In Scope
@@ -86,5 +87,6 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Fixed-vs-adaptive benchmark and CSV export: complete for MVP.
 - Aggregate benchmark statistics: complete for MVP.
 - Report-ready chart and summary export: complete for MVP.
+- Failure-mode simulation: complete for MVP.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
-- Failure-mode simulation and dissertation table scripts: pending.
+- Dissertation table scripts: pending.

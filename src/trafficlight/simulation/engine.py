@@ -8,6 +8,7 @@ from trafficlight.domain.enums import APPROACHES, Approach, Colour
 from trafficlight.domain.models import DemandSnapshot
 from trafficlight.domain.safety import assert_no_conflicting_greens
 from trafficlight.interfaces.event_sink import SimulationEventSink
+from trafficlight.simulation.faults import SensorFault, apply_sensor_faults
 from trafficlight.simulation.scenarios import Scenario
 
 
@@ -61,6 +62,7 @@ class SimulationSummary:
     max_queue: int
     conflicting_green_violations: int
     final_queues: dict[str, int] = field(default_factory=dict)
+    sensor_faults: list[dict] = field(default_factory=list)
 
 
 class SimulationEngine:
@@ -76,6 +78,7 @@ class SimulationEngine:
         discharge_headway_s: float = 2.2,
         logger: SimulationEventSink | None = None,
         on_step: StepObserver | None = None,
+        sensor_faults: tuple[SensorFault, ...] = (),
     ) -> None:
         self.scenario = scenario
         self.controller_name = controller_name
@@ -87,6 +90,7 @@ class SimulationEngine:
         self.discharge_headway_s = discharge_headway_s
         self.logger = logger
         self.on_step = on_step
+        self.sensor_faults = sensor_faults
         self.queues = {
             approach: ApproachQueue()
             for approach in APPROACHES
@@ -105,8 +109,9 @@ class SimulationEngine:
                     self.rng,
                 )
 
-            demand = self._demand_snapshot(elapsed)
-            status = self.controller.tick(self.step_s, demand)
+            true_demand = self._demand_snapshot(elapsed)
+            controller_demand = apply_sensor_faults(true_demand, self.sensor_faults)
+            status = self.controller.tick(self.step_s, controller_demand)
             try:
                 assert_no_conflicting_greens(status.signal_state)
             except Exception:
@@ -118,8 +123,8 @@ class SimulationEngine:
                 queue.accumulate_wait(self.step_s)
 
             self.max_queue = max(self.max_queue, *(queue.queue for queue in self.queues.values()))
-            self._record_logged_step(run_id, elapsed, demand, status)
-            self._notify_step(elapsed, demand, status)
+            self._record_logged_step(run_id, elapsed, controller_demand, status)
+            self._notify_step(elapsed, controller_demand, true_demand, status)
             elapsed += self.step_s
 
         arrivals = sum(queue.total_arrivals for queue in self.queues.values())
@@ -137,6 +142,7 @@ class SimulationEngine:
             max_queue=self.max_queue,
             conflicting_green_violations=self.conflicting_green_violations,
             final_queues={approach.value: queue.queue for approach, queue in self.queues.items()},
+            sensor_faults=[fault.to_dict() for fault in self.sensor_faults],
         )
         if self.logger is not None and run_id is not None:
             self.logger.finish_run(run_id, summary.__dict__)
@@ -162,6 +168,7 @@ class SimulationEngine:
                 "step_s": self.step_s,
                 "seed": self.seed,
                 "discharge_headway_s": self.discharge_headway_s,
+                "sensor_faults": [fault.to_dict() for fault in self.sensor_faults],
             }
         )
 
@@ -187,7 +194,13 @@ class SimulationEngine:
             mean_wait_s=mean_wait,
         )
 
-    def _notify_step(self, timestamp: float, demand: DemandSnapshot, status) -> None:
+    def _notify_step(
+        self,
+        timestamp: float,
+        demand: DemandSnapshot,
+        true_demand: DemandSnapshot,
+        status,
+    ) -> None:
         if self.on_step is None:
             return
         completed = sum(queue.total_departures for queue in self.queues.values())
@@ -209,6 +222,12 @@ class SimulationEngine:
                     "east": demand.east,
                     "south": demand.south,
                     "west": demand.west,
+                },
+                "true_demand": {
+                    "north": true_demand.north,
+                    "east": true_demand.east,
+                    "south": true_demand.south,
+                    "west": true_demand.west,
                 },
                 "queues": {
                     approach.value: queue.queue for approach, queue in self.queues.items()
