@@ -16,6 +16,7 @@ const elements = {
   status: document.querySelector("#connection-status"),
   controller: document.querySelector("#controller"),
   scenario: document.querySelector("#scenario"),
+  faultProfile: document.querySelector("#fault-profile"),
   duration: document.querySelector("#duration"),
   step: document.querySelector("#step"),
   seed: document.querySelector("#seed"),
@@ -26,6 +27,7 @@ const elements = {
   meanWait: document.querySelector("#mean-wait"),
   maxQueue: document.querySelector("#max-queue"),
   violations: document.querySelector("#violations"),
+  faultActive: document.querySelector("#fault-active"),
   historyLine: document.querySelector("#history-line"),
   runsBody: document.querySelector("#runs-body"),
   benchmarkStatus: document.querySelector("#benchmark-status"),
@@ -53,6 +55,7 @@ function params() {
   return new URLSearchParams({
     controller: elements.controller.value,
     scenario: elements.scenario.value,
+    fault_profile: elements.faultProfile.value,
     duration_s: elements.duration.value,
     step_s: elements.step.value,
     seed: elements.seed.value,
@@ -88,6 +91,14 @@ function updateQueues(queues) {
     history.shift();
   }
   drawHistory();
+}
+
+function updateDetectorDemand(demand) {
+  for (const approach of approaches) {
+    const label = document.querySelector(`#demand-${approach}-value`);
+    label.textContent = Math.round(demand[approach] ?? 0);
+    label.classList.toggle("benchmark-negative", Math.round(demand[approach] ?? 0) !== Number(document.querySelector(`#queue-${approach}-value`).textContent));
+  }
 }
 
 function svgElement(name, attributes = {}) {
@@ -281,10 +292,12 @@ function applyStep(message) {
   elements.phaseTime.textContent = `${message.phase_elapsed_s.toFixed(1)}s`;
   elements.reason.textContent = message.reason;
   elements.completed.textContent = message.completed_vehicles;
+  elements.faultActive.textContent = elements.faultProfile.value;
   elements.meanWait.textContent =
     message.mean_wait_s === null ? "-" : `${message.mean_wait_s.toFixed(1)}s`;
   activateSignals(message.signals);
   updateQueues(message.queues);
+  updateDetectorDemand(message.demand);
   renderVehicles(message.queues, message.signals);
 }
 
@@ -302,10 +315,12 @@ function resetRunView() {
   elements.meanWait.textContent = "-";
   elements.maxQueue.textContent = "0";
   elements.violations.textContent = "0";
+  elements.faultActive.textContent = elements.faultProfile.value;
   elements.phase.textContent = "all_red_to_ns";
   elements.phaseTime.textContent = "0.0s";
   elements.reason.textContent = "startup";
   drawHistory();
+  updateDetectorDemand({ north: 0, east: 0, south: 0, west: 0 });
   renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
 }
 

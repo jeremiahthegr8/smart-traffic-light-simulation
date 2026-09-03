@@ -36,6 +36,15 @@
           </select>
         </label>
         <label>
+          Fault profile
+          <select id="fault-profile">
+            <option value="none">None</option>
+            <option value="ns-stuck-high">NS stuck high</option>
+            <option value="ew-stuck-low">EW stuck low</option>
+            <option value="all-stuck-low-midrun">All stuck low mid-run</option>
+          </select>
+        </label>
+        <label>
           Duration
           <input id="duration" type="number" min="5" max="7200" step="5" value="120" />
         </label>
@@ -122,13 +131,18 @@
             <span>Safety violations</span>
             <strong id="violations">0</strong>
           </article>
+          <article>
+            <span>Fault profile</span>
+            <strong id="fault-active">none</strong>
+          </article>
         </div>
 
         <div class="queue-list">
-          <div class="queue-row"><span>North</span><meter id="queue-north" min="0" max="80" value="0"></meter><strong id="queue-north-value">0</strong></div>
-          <div class="queue-row"><span>East</span><meter id="queue-east" min="0" max="80" value="0"></meter><strong id="queue-east-value">0</strong></div>
-          <div class="queue-row"><span>South</span><meter id="queue-south" min="0" max="80" value="0"></meter><strong id="queue-south-value">0</strong></div>
-          <div class="queue-row"><span>West</span><meter id="queue-west" min="0" max="80" value="0"></meter><strong id="queue-west-value">0</strong></div>
+          <div class="queue-header"><span></span><span></span><span>Queue</span><span>Detector</span></div>
+          <div class="queue-row"><span>North</span><meter id="queue-north" min="0" max="80" value="0"></meter><strong id="queue-north-value">0</strong><strong id="demand-north-value">0</strong></div>
+          <div class="queue-row"><span>East</span><meter id="queue-east" min="0" max="80" value="0"></meter><strong id="queue-east-value">0</strong><strong id="demand-east-value">0</strong></div>
+          <div class="queue-row"><span>South</span><meter id="queue-south" min="0" max="80" value="0"></meter><strong id="queue-south-value">0</strong><strong id="demand-south-value">0</strong></div>
+          <div class="queue-row"><span>West</span><meter id="queue-west" min="0" max="80" value="0"></meter><strong id="queue-west-value">0</strong><strong id="demand-west-value">0</strong></div>
         </div>
 
         <svg class="history-chart" viewBox="0 0 600 160" role="img" aria-label="Queue history">

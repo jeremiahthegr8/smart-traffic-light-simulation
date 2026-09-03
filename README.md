@@ -16,6 +16,7 @@ logging, and fixed-vs-adaptive evaluation.
 - Browser dashboard with live intersection state, queue metrics, and visible vehicles.
 - Fixed-vs-adaptive benchmark runner with CSV export and aggregate statistics.
 - Detector fault simulation for stuck-high and stuck-low demand readings.
+- Dashboard fault-profile controls showing queue counts versus detector readings.
 - FastAPI API and WebSocket stream.
 - pytest safety, scenario, storage, benchmark, and API tests.
 
@@ -107,5 +108,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Add dashboard controls for fault-profile visualisation.
-2. Add statistical spread measures such as standard deviation and confidence intervals.
+1. Add statistical spread measures such as standard deviation and confidence intervals.
+2. Add dashboard charts for benchmark aggregate results.

@@ -27,6 +27,7 @@ The core claim to prove is:
 - Fixed-vs-adaptive benchmark runner.
 - CSV export for dissertation results.
 - Detector fault simulation for stuck-high and stuck-low readings.
+- Dashboard fault-profile controls showing queue counts versus detector readings.
 - Automated safety, scenario, storage, benchmark, and API tests.
 
 ## Not In Scope
@@ -90,5 +91,6 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Report-ready chart and summary export: complete for MVP.
 - Failure-mode simulation: complete for MVP.
 - Dissertation results package script: complete for MVP.
+- Dashboard fault-profile visualisation: complete for MVP.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
-- Fault-profile dashboard controls and statistical spread measures: pending.
+- Statistical spread measures and benchmark aggregate dashboard charts: pending.

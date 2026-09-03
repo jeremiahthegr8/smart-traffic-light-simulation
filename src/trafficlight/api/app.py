@@ -14,6 +14,7 @@ from trafficlight.simulation.benchmark import (
     benchmark_rows_to_dicts,
     run_benchmark,
 )
+from trafficlight.simulation.faults import fault_profiles
 from trafficlight.simulation.scenarios import SCENARIOS
 from trafficlight.simulation.runner import run_simulation
 from trafficlight.storage.database import connect_database
@@ -26,6 +27,7 @@ DASHBOARD_DIR = Path(__file__).resolve().parents[1] / "dashboard"
 class SimulationRequest(BaseModel):
     controller: str = Field(default="adaptive", pattern="^(fixed|adaptive)$")
     scenario: str = "ns-heavy"
+    fault_profile: str = "none"
     duration_s: float = Field(default=300.0, gt=0, le=7200)
     step_s: float = Field(default=0.5, gt=0, le=10)
     seed: int = 42
@@ -80,10 +82,21 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
             for name, scenario in SCENARIOS.items()
         }
 
+    @app.get("/api/fault-profiles")
+    def fault_profile_options(duration_s: float = Query(default=300.0, gt=0, le=7200)) -> dict:
+        return {
+            name: [fault.to_dict() for fault in faults]
+            for name, faults in fault_profiles(duration_s).items()
+        }
+
     @app.post("/api/simulations")
     def create_simulation(request: SimulationRequest) -> dict:
         if request.scenario not in SCENARIOS:
             raise HTTPException(status_code=404, detail="Unknown scenario")
+        try:
+            faults = _faults_for_profile(request.fault_profile, request.duration_s)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return run_simulation(
             controller_name=request.controller,
             scenario_name=request.scenario,
@@ -91,6 +104,7 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
             step_s=request.step_s,
             seed=request.seed,
             db_path=app.state.db_path if request.persist else None,
+            sensor_faults=faults,
         )
 
     @app.post("/api/benchmarks")
@@ -141,6 +155,7 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
         step_s: float = 1.0,
         seed: int = 42,
         persist: bool = True,
+        fault_profile: str = "none",
     ) -> None:
         await websocket.accept()
         loop = asyncio.get_running_loop()
@@ -159,6 +174,7 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
                     seed=seed,
                     db_path=app.state.db_path if persist else None,
                     on_step=publish,
+                    sensor_faults=_faults_for_profile(fault_profile, duration_s),
                 )
                 publish({"type": "summary", "summary": summary})
             except ValueError as exc:
@@ -187,6 +203,7 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
         duration_s: float = 60.0,
         step_s: float = 1.0,
         seed: int = 42,
+        fault_profile: str = "none",
     ) -> None:
         await websocket.accept()
         try:
@@ -199,6 +216,7 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
                 seed=seed,
                 db_path=None,
                 on_step=messages.append,
+                sensor_faults=_faults_for_profile(fault_profile, duration_s),
             )
             for message in messages:
                 await websocket.send_json(message)
@@ -207,6 +225,13 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
             await websocket.close(code=1008)
 
     return app
+
+
+def _faults_for_profile(profile: str, duration_s: float):
+    profiles = fault_profiles(duration_s)
+    if profile not in profiles:
+        raise ValueError(f"unknown fault profile: {profile}")
+    return profiles[profile]
 
 
 app = create_app()

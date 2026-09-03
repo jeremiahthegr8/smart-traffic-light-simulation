@@ -18,6 +18,9 @@ def test_health_and_scenarios(tmp_path) -> None:
     assert "ns-heavy" in scenarios
     assert scenarios["ns-heavy"]["arrivals_per_minute"]["north"] > 0
 
+    profiles = client.get("/api/fault-profiles").json()
+    assert "ns-stuck-high" in profiles
+
 
 def test_create_simulation_persists_run_and_metrics(tmp_path) -> None:
     client = TestClient(create_app(tmp_path / "api.sqlite"))
@@ -27,6 +30,7 @@ def test_create_simulation_persists_run_and_metrics(tmp_path) -> None:
         json={
             "controller": "adaptive",
             "scenario": "balanced",
+            "fault_profile": "ew-stuck-low",
             "duration_s": 20,
             "step_s": 1,
             "seed": 5,
@@ -36,6 +40,7 @@ def test_create_simulation_persists_run_and_metrics(tmp_path) -> None:
     assert response.status_code == 200
     summary = response.json()
     assert summary["conflicting_green_violations"] == 0
+    assert summary["sensor_faults"][0]["name"] == "ew-stuck-low"
 
     runs = client.get("/api/runs").json()
     assert len(runs) == 1
@@ -64,11 +69,12 @@ def test_websocket_stream_sends_steps_and_summary(tmp_path) -> None:
     client = TestClient(create_app(tmp_path / "api.sqlite"))
 
     with client.websocket_connect(
-        "/ws/simulation?controller=adaptive&scenario=balanced&duration_s=5&step_s=1&seed=1"
+        "/ws/simulation?controller=adaptive&scenario=balanced&duration_s=5&step_s=1&seed=1&fault_profile=ns-stuck-high"
     ) as websocket:
         first = websocket.receive_json()
         assert first["type"] == "step"
         assert first["phase"]
+        assert first["demand"]["north"] == 80
 
         message = first
         while message["type"] != "summary":
