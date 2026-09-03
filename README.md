@@ -15,8 +15,10 @@ logging, and fixed-vs-adaptive evaluation.
 - SQLite run, event, detector, and queue-metric logging.
 - Browser dashboard with live intersection state, queue metrics, and visible vehicles.
 - Fixed-vs-adaptive benchmark runner with CSV export and aggregate statistics.
+- Multi-seed spread measures including standard deviation and 95% confidence intervals.
 - Detector fault simulation for stuck-high and stuck-low demand readings.
 - Dashboard fault-profile controls showing queue counts versus detector readings.
+- Dashboard benchmark charts for aggregate fixed-vs-adaptive comparison.
 - FastAPI API and WebSocket stream.
 - pytest safety, scenario, storage, benchmark, and API tests.
 
@@ -60,7 +62,7 @@ python scripts/benchmark.py --duration 300 --step 0.5 --seeds 5 --csv results/be
 The benchmark script writes:
 
 - row-level CSV results
-- aggregate summary CSV
+- aggregate summary CSV with means, standard deviation, and 95% confidence intervals
 - SVG charts for mean wait, max queue, and completed vehicles
 
 Run detector fault simulations:
@@ -108,5 +110,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Add statistical spread measures such as standard deviation and confidence intervals.
-2. Add dashboard charts for benchmark aggregate results.
+1. Run the final multi-seed experiment set for the dissertation results section.
+2. Capture dashboard screenshots for the implementation and evaluation chapters.

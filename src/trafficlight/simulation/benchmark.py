@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import math
+import statistics
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -76,26 +78,38 @@ def aggregate_benchmark(rows: list[BenchmarkRow]) -> list[dict]:
 
     aggregates = []
     for (scenario, controller), group in sorted(grouped.items()):
+        completed = _stats(row.completed for row in group)
+        mean_wait = _stats(row.mean_wait_s for row in group)
+        max_queue = _stats(row.max_queue for row in group)
+        completed_delta = _stats_or_none(row.completed_delta_vs_fixed for row in group)
+        wait_improvement = _stats_or_none(row.mean_wait_improvement_pct for row in group)
+        queue_improvement = _stats_or_none(row.max_queue_improvement_pct for row in group)
         aggregates.append(
             {
                 "scenario": scenario,
                 "controller": controller,
                 "runs": len(group),
-                "mean_completed": _mean(row.completed for row in group),
-                "mean_wait_s": _mean(row.mean_wait_s for row in group),
-                "mean_max_queue": _mean(row.max_queue for row in group),
+                "mean_completed": completed["mean"],
+                "std_completed": completed["std"],
+                "ci95_completed": completed["ci95"],
+                "mean_wait_s": mean_wait["mean"],
+                "std_wait_s": mean_wait["std"],
+                "ci95_wait_s": mean_wait["ci95"],
+                "mean_max_queue": max_queue["mean"],
+                "std_max_queue": max_queue["std"],
+                "ci95_max_queue": max_queue["ci95"],
                 "total_conflicting_green_violations": sum(
                     row.conflicting_green_violations for row in group
                 ),
-                "mean_completed_delta_vs_fixed": _mean_or_none(
-                    row.completed_delta_vs_fixed for row in group
-                ),
-                "mean_wait_improvement_pct": _mean_or_none(
-                    row.mean_wait_improvement_pct for row in group
-                ),
-                "mean_max_queue_improvement_pct": _mean_or_none(
-                    row.max_queue_improvement_pct for row in group
-                ),
+                "mean_completed_delta_vs_fixed": completed_delta["mean"],
+                "std_completed_delta_vs_fixed": completed_delta["std"],
+                "ci95_completed_delta_vs_fixed": completed_delta["ci95"],
+                "mean_wait_improvement_pct": wait_improvement["mean"],
+                "std_wait_improvement_pct": wait_improvement["std"],
+                "ci95_wait_improvement_pct": wait_improvement["ci95"],
+                "mean_max_queue_improvement_pct": queue_improvement["mean"],
+                "std_max_queue_improvement_pct": queue_improvement["std"],
+                "ci95_max_queue_improvement_pct": queue_improvement["ci95"],
             }
         )
     return aggregates
@@ -157,8 +171,22 @@ def _mean(values) -> float:
     return sum(values) / len(values) if values else 0.0
 
 
-def _mean_or_none(values) -> float | None:
+def _stats(values) -> dict[str, float]:
+    values = [float(value) for value in values]
+    if not values:
+        return {"mean": 0.0, "std": 0.0, "ci95": 0.0}
+
+    mean = _mean(values)
+    if len(values) < 2:
+        return {"mean": mean, "std": 0.0, "ci95": 0.0}
+
+    std = statistics.stdev(values)
+    ci95 = 1.96 * std / math.sqrt(len(values))
+    return {"mean": mean, "std": std, "ci95": ci95}
+
+
+def _stats_or_none(values) -> dict[str, float | None]:
     values = [value for value in values if value is not None]
     if not values:
-        return None
-    return sum(values) / len(values)
+        return {"mean": None, "std": None, "ci95": None}
+    return _stats(values)

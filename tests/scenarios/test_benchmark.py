@@ -1,6 +1,6 @@
 import csv
 
-from trafficlight.simulation.benchmark import run_benchmark, write_benchmark_csv
+from trafficlight.simulation.benchmark import aggregate_benchmark, run_benchmark, write_benchmark_csv
 
 
 def test_benchmark_runs_fixed_and_adaptive_on_same_trace(tmp_path) -> None:
@@ -19,3 +19,20 @@ def test_benchmark_runs_fixed_and_adaptive_on_same_trace(tmp_path) -> None:
     assert len(csv_rows) == 2
     assert csv_rows[0]["controller"] == "fixed"
     assert csv_rows[1]["controller"] == "adaptive"
+
+
+def test_benchmark_aggregates_include_spread_measures() -> None:
+    rows = run_benchmark(scenarios=["ns-heavy"], seeds=[1, 2, 3], duration_s=60, step_s=1)
+    aggregates = aggregate_benchmark(rows)
+    adaptive = next(
+        row for row in aggregates if row["scenario"] == "ns-heavy" and row["controller"] == "adaptive"
+    )
+
+    assert adaptive["runs"] == 3
+    assert adaptive["std_wait_s"] >= 0
+    assert adaptive["ci95_wait_s"] >= 0
+    assert adaptive["std_max_queue"] >= 0
+    assert adaptive["ci95_max_queue"] >= 0
+    assert adaptive["mean_wait_improvement_pct"] is not None
+    assert adaptive["std_wait_improvement_pct"] is not None
+    assert adaptive["ci95_wait_improvement_pct"] is not None

@@ -13,12 +13,24 @@ SUMMARY_FIELDS = (
     "controller",
     "runs",
     "mean_completed",
+    "std_completed",
+    "ci95_completed",
     "mean_wait_s",
+    "std_wait_s",
+    "ci95_wait_s",
     "mean_max_queue",
+    "std_max_queue",
+    "ci95_max_queue",
     "total_conflicting_green_violations",
     "mean_completed_delta_vs_fixed",
+    "std_completed_delta_vs_fixed",
+    "ci95_completed_delta_vs_fixed",
     "mean_wait_improvement_pct",
+    "std_wait_improvement_pct",
+    "ci95_wait_improvement_pct",
     "mean_max_queue_improvement_pct",
+    "std_max_queue_improvement_pct",
+    "ci95_max_queue_improvement_pct",
 )
 
 
@@ -154,8 +166,8 @@ def _benchmark_markdown_table(aggregates: list[dict]) -> str:
     scenarios = sorted({row["scenario"] for row in aggregates})
     rows = [
         "| Scenario | Fixed mean wait (s) | Adaptive mean wait (s) | Wait change | "
-        "Fixed max queue | Adaptive max queue | Queue change | Safety violations |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        "Fixed max queue | Adaptive max queue | Queue change | Completed change | Safety violations |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for scenario in scenarios:
         fixed = by_key.get((scenario, "fixed"))
@@ -167,12 +179,22 @@ def _benchmark_markdown_table(aggregates: list[dict]) -> str:
             + " | ".join(
                 [
                     scenario,
-                    _fmt(fixed["mean_wait_s"]),
-                    _fmt(adaptive["mean_wait_s"]),
-                    _fmt_pct(adaptive["mean_wait_improvement_pct"]),
-                    _fmt(fixed["mean_max_queue"]),
-                    _fmt(adaptive["mean_max_queue"]),
-                    _fmt_pct(adaptive["mean_max_queue_improvement_pct"]),
+                    _fmt_ci(fixed["mean_wait_s"], fixed["ci95_wait_s"]),
+                    _fmt_ci(adaptive["mean_wait_s"], adaptive["ci95_wait_s"]),
+                    _fmt_pct_ci(
+                        adaptive["mean_wait_improvement_pct"],
+                        adaptive["ci95_wait_improvement_pct"],
+                    ),
+                    _fmt_ci(fixed["mean_max_queue"], fixed["ci95_max_queue"]),
+                    _fmt_ci(adaptive["mean_max_queue"], adaptive["ci95_max_queue"]),
+                    _fmt_pct_ci(
+                        adaptive["mean_max_queue_improvement_pct"],
+                        adaptive["ci95_max_queue_improvement_pct"],
+                    ),
+                    _fmt_ci(
+                        adaptive["mean_completed_delta_vs_fixed"],
+                        adaptive["ci95_completed_delta_vs_fixed"],
+                    ),
                     str(
                         fixed["total_conflicting_green_violations"]
                         + adaptive["total_conflicting_green_violations"]
@@ -218,6 +240,22 @@ def _fmt_pct(value: float | None) -> str:
     if value is None:
         return "-"
     return f"{float(value):+.2f}%"
+
+
+def _fmt_ci(value: float | int | None, ci95: float | int | None) -> str:
+    if value is None:
+        return "-"
+    if ci95 is None or float(ci95) == 0.0:
+        return _fmt(value)
+    return f"{_fmt(value)} +/- {_fmt(ci95)}"
+
+
+def _fmt_pct_ci(value: float | None, ci95: float | None) -> str:
+    if value is None:
+        return "-"
+    if ci95 is None or float(ci95) == 0.0:
+        return _fmt_pct(value)
+    return f"{_fmt_pct(value)} +/- {_fmt(ci95)} pp"
 
 
 def _total_violations(benchmark_aggregates: list[dict], failure_aggregates: list[dict]) -> int:

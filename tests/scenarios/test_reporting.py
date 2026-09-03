@@ -19,6 +19,9 @@ def test_report_assets_write_summary_csv_and_svg_charts(tmp_path) -> None:
 
     assert len(summary_rows) == 2
     assert {row["controller"] for row in summary_rows} == {"fixed", "adaptive"}
+    assert "std_wait_s" in summary_rows[0]
+    assert "ci95_wait_s" in summary_rows[0]
+    assert "ci95_wait_improvement_pct" in summary_rows[0]
 
 
 def test_write_summary_csv(tmp_path) -> None:
@@ -29,15 +32,30 @@ def test_write_summary_csv(tmp_path) -> None:
                 "controller": "fixed",
                 "runs": 1,
                 "mean_completed": 10,
+                "std_completed": 0,
+                "ci95_completed": 0,
                 "mean_wait_s": 12.5,
+                "std_wait_s": 0,
+                "ci95_wait_s": 0,
                 "mean_max_queue": 4,
+                "std_max_queue": 0,
+                "ci95_max_queue": 0,
                 "total_conflicting_green_violations": 0,
                 "mean_completed_delta_vs_fixed": None,
+                "std_completed_delta_vs_fixed": None,
+                "ci95_completed_delta_vs_fixed": None,
                 "mean_wait_improvement_pct": None,
+                "std_wait_improvement_pct": None,
+                "ci95_wait_improvement_pct": None,
                 "mean_max_queue_improvement_pct": None,
+                "std_max_queue_improvement_pct": None,
+                "ci95_max_queue_improvement_pct": None,
             }
         ],
         tmp_path / "summary.csv",
     )
 
-    assert path.read_text(encoding="utf-8").splitlines()[0].startswith("scenario,controller")
+    header = path.read_text(encoding="utf-8").splitlines()[0]
+    assert header.startswith("scenario,controller")
+    assert "std_wait_s" in header
+    assert "ci95_wait_s" in header

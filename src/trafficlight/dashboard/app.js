@@ -1,5 +1,6 @@
 const approaches = ["north", "east", "south", "west"];
 const colours = ["red", "amber", "green"];
+const benchmarkScenarios = ["balanced", "ns-heavy", "ew-heavy", "ns-burst", "alternating-peak"];
 const history = [];
 const maxHistory = 80;
 const svgNamespace = "http://www.w3.org/2000/svg";
@@ -20,6 +21,7 @@ const elements = {
   duration: document.querySelector("#duration"),
   step: document.querySelector("#step"),
   seed: document.querySelector("#seed"),
+  benchmarkSeeds: document.querySelector("#benchmark-seeds"),
   phase: document.querySelector("#phase"),
   phaseTime: document.querySelector("#phase-time"),
   reason: document.querySelector("#reason"),
@@ -32,6 +34,8 @@ const elements = {
   runsBody: document.querySelector("#runs-body"),
   benchmarkStatus: document.querySelector("#benchmark-status"),
   benchmarkBody: document.querySelector("#benchmark-body"),
+  benchmarkWaitChart: document.querySelector("#benchmark-wait-chart"),
+  benchmarkQueueChart: document.querySelector("#benchmark-queue-chart"),
   activeLayer: document.querySelector("#active-layer"),
   vehicleLayer: document.querySelector("#vehicle-layer"),
 };
@@ -359,17 +363,198 @@ function formatImprovement(value) {
   return `<span class="${cssClass}">${prefix}${value.toFixed(1)}%</span>`;
 }
 
+function benchmarkSeeds() {
+  const parsedBaseSeed = Number(elements.seed.value);
+  const baseSeed = Number.isFinite(parsedBaseSeed) ? parsedBaseSeed : 1;
+  const seedCount = Math.max(
+    1,
+    Math.min(50, Math.floor(Number(elements.benchmarkSeeds.value) || 1))
+  );
+  elements.seed.value = baseSeed;
+  elements.benchmarkSeeds.value = seedCount;
+  return Array.from({ length: seedCount }, (_, index) => baseSeed + index);
+}
+
+function renderAggregateCharts(aggregates) {
+  drawGroupedChart(elements.benchmarkWaitChart, aggregates, {
+    metric: "mean_wait_s",
+    ciMetric: "ci95_wait_s",
+    yLabel: "seconds",
+    decimals: 1,
+  });
+  drawGroupedChart(elements.benchmarkQueueChart, aggregates, {
+    metric: "mean_max_queue",
+    ciMetric: "ci95_max_queue",
+    yLabel: "vehicles",
+    decimals: 1,
+  });
+}
+
+function clearAggregateCharts() {
+  drawChartPlaceholder(elements.benchmarkWaitChart, "Run a benchmark to chart mean wait");
+  drawChartPlaceholder(elements.benchmarkQueueChart, "Run a benchmark to chart max queue");
+}
+
+function drawChartPlaceholder(svg, text) {
+  svg.innerHTML = "";
+  const label = svgElement("text", {
+    x: 380,
+    y: 136,
+    "text-anchor": "middle",
+    class: "chart-label",
+  });
+  label.textContent = text;
+  svg.append(label);
+}
+
+function drawGroupedChart(svg, aggregates, options) {
+  svg.innerHTML = "";
+  if (!aggregates.length) {
+    drawChartPlaceholder(svg, "No benchmark data");
+    return;
+  }
+
+  const width = 760;
+  const height = 260;
+  const margin = { left: 50, right: 18, top: 18, bottom: 54 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+  const byKey = new Map(aggregates.map((row) => [`${row.scenario}:${row.controller}`, row]));
+  const scenarios = benchmarkScenarios.filter((scenario) =>
+    ["fixed", "adaptive"].some((controller) => byKey.has(`${scenario}:${controller}`))
+  );
+  const maxValue = Math.max(
+    1,
+    ...aggregates.map((row) => Number(row[options.metric] || 0) + Number(row[options.ciMetric] || 0))
+  );
+  const groupWidth = chartWidth / Math.max(1, scenarios.length);
+  const barWidth = Math.min(34, groupWidth * 0.26);
+
+  svg.append(
+    svgElement("line", {
+      x1: margin.left,
+      y1: margin.top,
+      x2: margin.left,
+      y2: margin.top + chartHeight,
+      class: "chart-axis",
+    })
+  );
+  svg.append(
+    svgElement("line", {
+      x1: margin.left,
+      y1: margin.top + chartHeight,
+      x2: width - margin.right,
+      y2: margin.top + chartHeight,
+      class: "chart-axis",
+    })
+  );
+
+  for (let tick = 0; tick <= 4; tick += 1) {
+    const value = (maxValue / 4) * tick;
+    const y = margin.top + chartHeight - (value / maxValue) * chartHeight;
+    svg.append(
+      svgElement("line", {
+        x1: margin.left - 4,
+        y1: y,
+        x2: width - margin.right,
+        y2: y,
+        class: tick === 0 ? "chart-axis" : "chart-grid",
+      })
+    );
+    const tickLabel = svgElement("text", {
+      x: margin.left - 8,
+      y: y + 4,
+      "text-anchor": "end",
+      class: "chart-tick",
+    });
+    tickLabel.textContent = value.toFixed(0);
+    svg.append(tickLabel);
+  }
+
+  const legend = [
+    { controller: "fixed", label: "Fixed", className: "chart-bar-fixed", x: width - 170 },
+    { controller: "adaptive", label: "Adaptive", className: "chart-bar-adaptive", x: width - 94 },
+  ];
+  for (const item of legend) {
+    svg.append(svgElement("rect", { x: item.x, y: 10, width: 14, height: 14, rx: 3, class: item.className }));
+    const label = svgElement("text", { x: item.x + 20, y: 22, class: "chart-legend" });
+    label.textContent = item.label;
+    svg.append(label);
+  }
+
+  for (const [index, scenario] of scenarios.entries()) {
+    const centerX = margin.left + index * groupWidth + groupWidth / 2;
+    const label = svgElement("text", {
+      x: centerX,
+      y: height - 26,
+      "text-anchor": "middle",
+      class: "chart-label",
+    });
+    label.textContent = scenario.replace("-", " ");
+    svg.append(label);
+
+    for (const item of [
+      { controller: "fixed", className: "chart-bar chart-bar-fixed", offset: -barWidth * 0.62 },
+      { controller: "adaptive", className: "chart-bar chart-bar-adaptive", offset: barWidth * 0.62 },
+    ]) {
+      const row = byKey.get(`${scenario}:${item.controller}`);
+      if (!row) {
+        continue;
+      }
+      const value = Number(row[options.metric] || 0);
+      const ci95 = Number(row[options.ciMetric] || 0);
+      const barHeight = (value / maxValue) * chartHeight;
+      const x = centerX + item.offset - barWidth / 2;
+      const y = margin.top + chartHeight - barHeight;
+      svg.append(
+        svgElement("rect", {
+          x: x,
+          y: y,
+          width: barWidth,
+          height: barHeight,
+          rx: 4,
+          class: item.className,
+        })
+      );
+
+      if (ci95 > 0) {
+        const yHigh = margin.top + chartHeight - ((value + ci95) / maxValue) * chartHeight;
+        const yLow = margin.top + chartHeight - (Math.max(0, value - ci95) / maxValue) * chartHeight;
+        const cx = x + barWidth / 2;
+        svg.append(svgElement("line", { x1: cx, y1: yHigh, x2: cx, y2: yLow, class: "chart-ci" }));
+        svg.append(svgElement("line", { x1: cx - 5, y1: yHigh, x2: cx + 5, y2: yHigh, class: "chart-ci" }));
+        svg.append(svgElement("line", { x1: cx - 5, y1: yLow, x2: cx + 5, y2: yLow, class: "chart-ci" }));
+      }
+
+      const valueLabel = svgElement("text", {
+        x: x + barWidth / 2,
+        y: Math.max(12, y - 6),
+        "text-anchor": "middle",
+        class: "chart-value",
+      });
+      valueLabel.textContent = value.toFixed(options.decimals);
+      svg.append(valueLabel);
+    }
+  }
+
+  const axisLabel = svgElement("text", { x: margin.left, y: 12, class: "chart-label" });
+  axisLabel.textContent = options.yLabel;
+  svg.append(axisLabel);
+}
+
 async function runBenchmark() {
   setBenchmarkRunning(true);
   elements.benchmarkStatus.textContent = "Running";
   elements.benchmarkBody.innerHTML = "";
+  clearAggregateCharts();
+  const seeds = benchmarkSeeds();
   try {
     const response = await fetch("/api/benchmarks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        scenarios: ["balanced", "ns-heavy", "ew-heavy", "ns-burst", "alternating-peak"],
-        seeds: [Number(elements.seed.value)],
+        scenarios: benchmarkScenarios,
+        seeds,
         duration_s: Number(elements.duration.value),
         step_s: Number(elements.step.value),
       }),
@@ -392,7 +577,8 @@ async function runBenchmark() {
       `;
       elements.benchmarkBody.append(tr);
     }
-    elements.benchmarkStatus.textContent = `${payload.rows.length} rows`;
+    renderAggregateCharts(payload.aggregates);
+    elements.benchmarkStatus.textContent = `${payload.rows.length} rows, ${seeds.length} seeds`;
   } catch (error) {
     elements.benchmarkStatus.textContent = "Failed";
   } finally {
@@ -437,4 +623,5 @@ elements.runButton.addEventListener("click", runSimulation);
 elements.benchmarkButton.addEventListener("click", runBenchmark);
 activateSignals({ north: "red", east: "red", south: "red", west: "red" });
 renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
+clearAggregateCharts();
 loadRuns();

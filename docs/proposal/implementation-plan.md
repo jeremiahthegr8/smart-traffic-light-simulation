@@ -28,6 +28,8 @@ The core claim to prove is:
 - CSV export for dissertation results.
 - Detector fault simulation for stuck-high and stuck-low readings.
 - Dashboard fault-profile controls showing queue counts versus detector readings.
+- Statistical spread measures for repeatable multi-seed benchmarks.
+- Dashboard aggregate charts comparing fixed-time and adaptive control.
 - Automated safety, scenario, storage, benchmark, and API tests.
 
 ## Not In Scope
@@ -56,6 +58,7 @@ simulation-only project direction.
 11. Report-ready charts and experiment tables.
 12. Failure-mode simulation.
 13. Dissertation results package script.
+14. Multi-seed spread measures and dashboard aggregate charts.
 
 ## Experiment Scenarios
 
@@ -92,5 +95,5 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Failure-mode simulation: complete for MVP.
 - Dissertation results package script: complete for MVP.
 - Dashboard fault-profile visualisation: complete for MVP.
+- Statistical spread measures and benchmark aggregate dashboard charts: complete for MVP.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
-- Statistical spread measures and benchmark aggregate dashboard charts: pending.

@@ -56,6 +56,10 @@
           Seed
           <input id="seed" type="number" value="42" />
         </label>
+        <label>
+          Benchmark seeds
+          <input id="benchmark-seeds" type="number" min="1" max="50" step="1" value="5" />
+        </label>
       </section>
 
       <section class="intersection-panel" aria-label="Intersection state">
@@ -187,6 +191,16 @@
           </thead>
           <tbody id="benchmark-body"></tbody>
         </table>
+        <div class="benchmark-aggregates" aria-label="Benchmark aggregate charts">
+          <div class="chart-panel">
+            <div class="chart-title">Mean Wait by Scenario</div>
+            <svg id="benchmark-wait-chart" class="benchmark-chart" viewBox="0 0 760 260" role="img" aria-label="Mean wait aggregate chart"></svg>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-title">Max Queue by Scenario</div>
+            <svg id="benchmark-queue-chart" class="benchmark-chart" viewBox="0 0 760 260" role="img" aria-label="Max queue aggregate chart"></svg>
+          </div>
+        </div>
       </section>
     </main>
 
