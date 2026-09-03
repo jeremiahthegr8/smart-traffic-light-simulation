@@ -68,6 +68,14 @@ Run detector fault simulations:
 python scripts/failure_modes.py --scenario ns-heavy --duration 300 --step 0.5 --seeds 5 --csv results/failure_modes.csv
 ```
 
+Generate the full dissertation results package:
+
+```powershell
+python scripts/dissertation_results.py --duration 300 --step 0.5 --seeds 5 --output-dir results/dissertation
+```
+
+This writes CSV files, SVG charts, and `results_summary.md`.
+
 ## Scenarios
 
 - `balanced`: similar demand on all four approaches.
@@ -99,4 +107,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Add a results notebook or script for dissertation tables.
+1. Add dashboard controls for fault-profile visualisation.
+2. Add statistical spread measures such as standard deviation and confidence intervals.

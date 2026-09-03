@@ -5,6 +5,7 @@ import html
 from pathlib import Path
 
 from trafficlight.simulation.benchmark import BenchmarkRow, aggregate_benchmark, write_benchmark_csv
+from trafficlight.simulation.failure_modes import aggregate_failure_modes, write_failure_modes_csv
 
 
 SUMMARY_FIELDS = (
@@ -54,6 +55,87 @@ def write_report_assets(rows: list[BenchmarkRow], output_dir: str | Path) -> dic
     return outputs
 
 
+def write_dissertation_report(
+    *,
+    benchmark_rows: list[BenchmarkRow],
+    failure_rows: list[dict],
+    output_dir: str | Path,
+    duration_s: float,
+    step_s: float,
+    seeds: tuple[int, ...],
+) -> dict[str, Path]:
+    directory = Path(output_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+
+    benchmark_outputs = write_report_assets(benchmark_rows, directory)
+    failure_csv = write_failure_modes_csv(failure_rows, directory / "failure_modes.csv")
+    report_path = directory / "results_summary.md"
+    report_path.write_text(
+        build_results_markdown(
+            benchmark_aggregates=aggregate_benchmark(benchmark_rows),
+            failure_aggregates=aggregate_failure_modes(failure_rows),
+            duration_s=duration_s,
+            step_s=step_s,
+            seeds=seeds,
+        ),
+        encoding="utf-8",
+    )
+
+    return {
+        **benchmark_outputs,
+        "failure_csv": failure_csv,
+        "markdown_report": report_path,
+    }
+
+
+def build_results_markdown(
+    *,
+    benchmark_aggregates: list[dict],
+    failure_aggregates: list[dict],
+    duration_s: float,
+    step_s: float,
+    seeds: tuple[int, ...],
+) -> str:
+    seed_text = ", ".join(str(seed) for seed in seeds)
+    lines = [
+        "# Experiment Results Summary",
+        "",
+        "## Experiment Configuration",
+        "",
+        f"- Duration per run: {duration_s:g} seconds",
+        f"- Simulation step: {step_s:g} seconds",
+        f"- Random seeds: {seed_text}",
+        "- Controllers compared: fixed-time baseline and adaptive demand controller",
+        "",
+        "## Fixed-Time vs Adaptive Control",
+        "",
+        _benchmark_markdown_table(benchmark_aggregates),
+        "",
+        "## Detector Fault Simulation",
+        "",
+        _failure_markdown_table(failure_aggregates),
+        "",
+        "## Safety Result",
+        "",
+        (
+            "Across the benchmark and detector-fault experiments, the controller recorded "
+            f"{_total_violations(benchmark_aggregates, failure_aggregates)} conflicting-green "
+            "violations."
+        ),
+        "",
+        "## Generated Assets",
+        "",
+        "- `benchmark_rows.csv`: row-level fixed/adaptive runs",
+        "- `benchmark_summary.csv`: aggregate fixed/adaptive results",
+        "- `failure_modes.csv`: detector fault results",
+        "- `mean_wait.svg`: mean waiting-time chart",
+        "- `max_queue.svg`: mean maximum-queue chart",
+        "- `completed.svg`: mean completed-vehicles chart",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def write_summary_csv(aggregates: list[dict], path: str | Path) -> Path:
     output_path = Path(path)
     if output_path.parent != Path("."):
@@ -65,6 +147,83 @@ def write_summary_csv(aggregates: list[dict], path: str | Path) -> Path:
         for row in aggregates:
             writer.writerow(row)
     return output_path
+
+
+def _benchmark_markdown_table(aggregates: list[dict]) -> str:
+    by_key = {(row["scenario"], row["controller"]): row for row in aggregates}
+    scenarios = sorted({row["scenario"] for row in aggregates})
+    rows = [
+        "| Scenario | Fixed mean wait (s) | Adaptive mean wait (s) | Wait change | "
+        "Fixed max queue | Adaptive max queue | Queue change | Safety violations |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for scenario in scenarios:
+        fixed = by_key.get((scenario, "fixed"))
+        adaptive = by_key.get((scenario, "adaptive"))
+        if fixed is None or adaptive is None:
+            continue
+        rows.append(
+            "| "
+            + " | ".join(
+                [
+                    scenario,
+                    _fmt(fixed["mean_wait_s"]),
+                    _fmt(adaptive["mean_wait_s"]),
+                    _fmt_pct(adaptive["mean_wait_improvement_pct"]),
+                    _fmt(fixed["mean_max_queue"]),
+                    _fmt(adaptive["mean_max_queue"]),
+                    _fmt_pct(adaptive["mean_max_queue_improvement_pct"]),
+                    str(
+                        fixed["total_conflicting_green_violations"]
+                        + adaptive["total_conflicting_green_violations"]
+                    ),
+                ]
+            )
+            + " |"
+        )
+    return "\n".join(rows)
+
+
+def _failure_markdown_table(aggregates: list[dict]) -> str:
+    rows = [
+        "| Fault profile | Runs | Mean completed | Mean wait (s) | Mean max queue | "
+        "Safety violations |",
+        "|---|---:|---:|---:|---:|---:|",
+    ]
+    for row in aggregates:
+        rows.append(
+            "| "
+            + " | ".join(
+                [
+                    row["fault"],
+                    str(row["runs"]),
+                    _fmt(row["mean_completed"]),
+                    _fmt(row["mean_wait_s"]),
+                    _fmt(row["mean_max_queue"]),
+                    str(row["total_conflicting_green_violations"]),
+                ]
+            )
+            + " |"
+        )
+    return "\n".join(rows)
+
+
+def _fmt(value: float | int | None) -> str:
+    if value is None:
+        return "-"
+    return f"{float(value):.2f}"
+
+
+def _fmt_pct(value: float | None) -> str:
+    if value is None:
+        return "-"
+    return f"{float(value):+.2f}%"
+
+
+def _total_violations(benchmark_aggregates: list[dict], failure_aggregates: list[dict]) -> int:
+    return sum(row["total_conflicting_green_violations"] for row in benchmark_aggregates) + sum(
+        row["total_conflicting_green_violations"] for row in failure_aggregates
+    )
 
 
 def write_grouped_bar_chart_svg(
@@ -180,4 +339,3 @@ def _legend(x: float, y: float, fixed_colour: str, adaptive_colour: str) -> str:
   <rect x="{x + 86}" y="{y}" width="14" height="14" fill="{adaptive_colour}" rx="3" />
   <text x="{x + 108}" y="{y + 12}" class="tick">Adaptive</text>
 </g>"""
-

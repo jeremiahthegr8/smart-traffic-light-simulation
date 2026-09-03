@@ -54,6 +54,7 @@ simulation-only project direction.
 10. Aggregate benchmark statistics.
 11. Report-ready charts and experiment tables.
 12. Failure-mode simulation.
+13. Dissertation results package script.
 
 ## Experiment Scenarios
 
@@ -88,5 +89,6 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Aggregate benchmark statistics: complete for MVP.
 - Report-ready chart and summary export: complete for MVP.
 - Failure-mode simulation: complete for MVP.
+- Dissertation results package script: complete for MVP.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
-- Dissertation table scripts: pending.
+- Fault-profile dashboard controls and statistical spread measures: pending.
