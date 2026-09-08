@@ -96,4 +96,5 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Dissertation results package script: complete for MVP.
 - Dashboard fault-profile visualisation: complete for MVP.
 - Statistical spread measures and benchmark aggregate dashboard charts: complete for MVP.
+- Results and evaluation draft: complete.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
