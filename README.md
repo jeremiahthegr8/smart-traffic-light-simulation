@@ -110,5 +110,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Run the final multi-seed experiment set for the dissertation results section.
-2. Capture dashboard screenshots for the implementation and evaluation chapters.
+1. Assemble the final report from the proposal drafts and generated result artifacts.
+2. Prepare a short demonstration script using the saved dashboard screenshots and benchmark outputs.
