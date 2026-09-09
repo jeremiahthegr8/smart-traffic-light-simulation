@@ -266,6 +266,10 @@ Say:
 | Question | Answer |
 |---|---|
 | Why did you remove the hardware? | To focus on repeatable algorithm evaluation, safety testing, dashboard evidence, and quantitative results. Hardware can be added later, but it is not necessary to prove the controller logic. |
+| What makes this engineering-related if similar systems already exist? | The project is a designed and tested software engineering system: it has requirements, controller logic, safety constraints, simulation, persistence, API, dashboard, benchmark scripts, generated evidence, and automated tests. It does not claim to invent adaptive traffic lights; it demonstrates and evaluates a complete implementation. |
+| What is different from a basic traffic-light project? | It compares adaptive control against a fixed-time baseline using the same traffic traces, records quantitative metrics, tests detector faults, shows true queue versus detector demand, and produces repeatable result artifacts. |
+| How are cars detected in a simulation-only system? | The simulator maintains true queues and exposes virtual detector demand to the controller. This replaces physical sensors for the approved simulation scope. |
+| What about rain, darkness, glare, or poor visibility? | These are treated as possible causes of incorrect detector readings. The current project represents that through stuck-high and stuck-low fault profiles rather than physical camera or sensor modelling. |
 | How is the adaptive controller different from fixed-time? | Fixed-time uses the same green duration every cycle. Adaptive control changes green duration using queue demand while staying within minimum and maximum green limits. |
 | How do you know the comparison is fair? | Fixed and adaptive runs use the same scenario, duration, step size, and random seed, so they receive the same traffic arrival trace. |
 | What prevents conflicting green lights? | The shared phase controller only creates safe movement-group states, and every state passes through `assert_no_conflicting_greens`. |

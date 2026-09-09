@@ -64,6 +64,7 @@ shared phase-safety constraints.
 | Table 5 | Detector fault profiles |
 | Table 6 | Benchmark results |
 | Table 7 | Detector-fault results |
+| Table 8 | Environmental and operational factors |
 
 ## Chapter 1: Introduction
 
@@ -114,6 +115,27 @@ amber, and all-red clearance states.
 The current scope excludes Raspberry Pi deployment, GPIO wiring, physical LEDs, camera hardware,
 pedestrian phases, emergency-vehicle priority, and public-road operation. The project is an
 academic simulation and evaluation system.
+
+### 1.6 Engineering Contribution and Distinction
+
+This project does not claim that adaptive traffic-light control is a new concept. Many traffic
+control systems and previous academic projects have already explored adaptive signal timing. The
+engineering contribution of this project is the design, implementation, and evaluation of a
+complete simulation-based controller that can be tested repeatedly and defended with generated
+evidence.
+
+The project improves on a simple traffic-light demonstration by combining:
+
+- a fixed-time baseline and an adaptive controller using the same safety state machine;
+- repeatable traffic scenarios using deterministic random seeds;
+- explicit safety checks for conflicting green signals;
+- detector-fault simulation that separates true queue values from controller-visible readings;
+- data logging, benchmark exports, charts, and dashboard evidence;
+- automated tests covering controller behaviour, simulation, storage, API, reporting, and faults.
+
+Therefore, the value of the work is not that it invents traffic control from scratch. The value is
+that it applies software engineering methods to build a measurable, repeatable, and testable
+adaptive-control prototype.
 
 ## Chapter 2: Background and Literature Review
 
@@ -288,14 +310,40 @@ Each approach tracks:
 | `ew-stuck-low` | East/West detector demand is forced to zero |
 | `all-stuck-low-midrun` | All detector readings become zero halfway through the run |
 
-### 4.7 Dashboard
+### 4.7 Detector Abstraction and Environmental Conditions
+
+Because the approved project scope is simulation-only, vehicles are detected through a virtual
+detector model rather than through cameras, ultrasonic sensors, inductive loops, or GPIO input.
+The simulator maintains the true queue length on each approach, then exposes a controller-visible
+demand value. The controller uses this demand value to choose green duration.
+
+This separation is important because real-world conditions such as rain, darkness, glare, dirt on
+a camera lens, sensor damage, or poor calibration mainly affect what a detector reports. In this
+project, those effects are represented at the detector-input level rather than by modelling camera
+images or physical electronics.
+
+| Factor | Treatment in current simulation |
+|---|---|
+| Heavy traffic on one axis | Modelled through `ns-heavy` and `ew-heavy` demand scenarios |
+| Short demand surge | Modelled through the `ns-burst` scenario |
+| Peak direction changing over time | Modelled through the `alternating-peak` scenario |
+| Sensor stuck high | Modelled through the `ns-stuck-high` fault profile |
+| Sensor stuck low or missed detections | Modelled through `ew-stuck-low` and `all-stuck-low-midrun` |
+| Rain, darkness, glare, dirt, or poor visibility | Considered as possible causes of incorrect detector demand, but not physically modelled |
+| Pedestrians, emergency vehicles, turning lanes, blocked roads, and lane changes | Outside the current scope and listed as future work |
+
+This means the project can discuss environmental conditions honestly: it considers their effect
+on controller input reliability, but it does not claim to solve physical perception under those
+conditions.
+
+### 4.8 Dashboard
 
 The dashboard is a static HTML/CSS/JavaScript interface served by FastAPI. It uses WebSocket
 messages for live simulation updates and HTTP requests for benchmark execution. It visualises
 signal lamps, queue meters, detector values, visible vehicles, run history, benchmark tables, and
 aggregate charts.
 
-### 4.8 Reporting Workflow
+### 4.9 Reporting Workflow
 
 The final result package is generated with:
 
@@ -404,11 +452,13 @@ system recorded zero conflicting-green violations.
 
 ## Chapter 9: Limitations and Future Work
 
-The project uses a simplified traffic simulator. It does not model turning movements,
-pedestrians, emergency vehicles, lane changes, weather, vehicle classes, realistic driver
-behaviour, calibrated road geometry, or real detector noise. The results should therefore be
-interpreted as evidence for the implemented simulation rather than direct predictions for a real
-road junction.
+The project uses a simplified traffic simulator. It considers weather, darkness, glare, and
+similar environmental factors as possible causes of detector error, but it does not physically
+model image quality, sensor hardware, road-surface conditions, or visibility. It also does not
+model turning movements, pedestrians, emergency vehicles, lane changes, vehicle classes,
+realistic driver behaviour, calibrated road geometry, or detailed detector noise. The results
+should therefore be interpreted as evidence for the implemented simulation rather than direct
+predictions for a real road junction.
 
 Future work could add:
 

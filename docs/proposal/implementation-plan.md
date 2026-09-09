@@ -14,6 +14,18 @@ The core claim to prove is:
 > baseline under unequal or changing traffic demand, while maintaining zero conflicting-green
 > violations.
 
+## Engineering Contribution
+
+The project does not claim that adaptive traffic-light control is new. Its engineering
+contribution is a complete, simulation-only implementation that can be tested and evaluated with
+repeatable evidence:
+
+- a fixed-time baseline and adaptive controller sharing the same safe phase machine;
+- deterministic scenarios and seeds for fair controller comparison;
+- visible dashboard simulation with true queues and controller-visible detector values;
+- detector-fault profiles for incorrect high and low demand readings;
+- SQLite logging, CSV export, charts, and automated tests.
+
 ## Scope
 
 - North/South and East/West phase groups.
@@ -42,6 +54,25 @@ The core claim to prove is:
 
 The previous hardware-capable version is preserved on `master`. This branch is for the
 simulation-only project direction.
+
+## Operational Factors and Detector Assumptions
+
+Vehicle detection is modelled as a virtual detector reading. The simulator keeps the real queue
+for each approach, then sends a controller-visible demand value to the adaptive controller.
+
+Rain, darkness, glare, dirt, poor calibration, and damaged sensors are treated as reasons why a
+detector reading could become inaccurate. The current implementation represents this through
+stuck-high and stuck-low detector fault profiles. It does not physically model camera images,
+lighting, road-surface conditions, or sensor electronics.
+
+Future simulation factors to add after the current MVP:
+
+- intermittent noisy detector readings;
+- delayed detector updates;
+- pedestrian call buttons and crossing phases;
+- emergency-vehicle priority;
+- turning movements and blocked lanes;
+- weather-dependent discharge rate or arrival behaviour.
 
 ## Implementation Order
 
