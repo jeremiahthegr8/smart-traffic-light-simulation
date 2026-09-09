@@ -110,5 +110,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Assemble the final report from the proposal drafts and generated result artifacts.
-2. Prepare a short demonstration script using the saved dashboard screenshots and benchmark outputs.
+1. Prepare a short demonstration script using the saved dashboard screenshots and benchmark outputs.
+2. Polish the final report draft into your institution's required formatting.
