@@ -101,4 +101,5 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Methodology and implementation draft: complete.
 - Results and evaluation draft: complete.
 - Final report draft assembly: complete.
+- Demonstration script draft: complete.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.

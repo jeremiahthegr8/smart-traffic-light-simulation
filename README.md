@@ -110,5 +110,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Prepare a short demonstration script using the saved dashboard screenshots and benchmark outputs.
-2. Polish the final report draft into your institution's required formatting.
+1. Polish the final report draft into your institution's required formatting.
+2. Create presentation slides from the final report and demonstration script.
