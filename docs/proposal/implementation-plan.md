@@ -103,4 +103,5 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Final report draft assembly: complete.
 - Final report formatting draft: complete.
 - Demonstration script draft: complete.
+- Presentation deck draft: complete.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.

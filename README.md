@@ -110,5 +110,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Create presentation slides from the final report and demonstration script.
-2. Do a final review pass for institution-specific formatting requirements.
+1. Do a final review pass for institution-specific formatting requirements.
+2. Rehearse the demo with the presentation deck and saved dashboard evidence.

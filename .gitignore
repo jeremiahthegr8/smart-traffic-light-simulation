@@ -19,3 +19,5 @@ trafficlight.db
 .playwright-cli/
 output/
 results/
+.codex-pptx-build/
+.chart-data-*/
