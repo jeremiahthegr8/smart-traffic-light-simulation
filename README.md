@@ -110,5 +110,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Polish the final report draft into your institution's required formatting.
-2. Create presentation slides from the final report and demonstration script.
+1. Create presentation slides from the final report and demonstration script.
+2. Do a final review pass for institution-specific formatting requirements.
