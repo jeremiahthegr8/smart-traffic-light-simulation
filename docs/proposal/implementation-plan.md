@@ -137,4 +137,5 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Presentation deck draft: complete.
 - Final submission checklist: complete.
 - Demo rehearsal result: complete.
+- Submission package folder: complete.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.

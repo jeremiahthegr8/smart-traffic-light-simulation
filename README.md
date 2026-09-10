@@ -111,4 +111,4 @@ src/trafficlight/
 ## Next Milestones
 
 1. Confirm institution-specific title page, citation style, and submission format.
-2. Package the final report and presentation in the format required by the institution.
+2. Convert the final report to PDF or DOCX if the institution requires it.
