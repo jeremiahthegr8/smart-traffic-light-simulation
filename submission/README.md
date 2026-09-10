@@ -16,6 +16,7 @@ traffic-light project.
 | `traffic-light-demo-corrected.pptx` | Corrected presentation deck |
 | `demonstration-script.md` | Short viva/demo walkthrough script |
 | `final-submission-checklist.md` | Final checks before submission |
+| `final-details-needed.md` | Exact personal/institution details still needing confirmation |
 | `demo-rehearsal-result.md` | Recorded result from the live dashboard rehearsal |
 | `institution-format-reference.md` | Format notes extracted from the previous project files |
 

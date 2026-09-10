@@ -111,4 +111,6 @@ src/trafficlight/
 ## Next Milestones
 
 1. Confirm exact student name, ID, supervisor name, citation style, and submission file type.
-2. Convert `docs/final-report/final-report-gctu-structure.md` to DOCX/PDF if required.
+2. Replace the report title-page placeholders, then regenerate the DOCX/PDF exports if those
+   details change.
+3. Submit from `submission/` or present from `presentation-ready/`.
