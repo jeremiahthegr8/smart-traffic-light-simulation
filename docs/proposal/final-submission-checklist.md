@@ -7,6 +7,7 @@ format.
 ## Completed Project Evidence
 
 - Final assembled report: `docs/final-report/final-report.md`
+- GCTU five-chapter report source: `docs/final-report/final-report-gctu-structure.md`
 - Presentation deck: `docs/presentation/traffic-light-demo-v2.pptx`
 - Demonstration script: `docs/proposal/demonstration-script.md`
 - Demo rehearsal result: `docs/proposal/demo-rehearsal-result.md`
@@ -32,7 +33,7 @@ These depend on the school template or supervisor instructions and cannot be ful
 the repository alone.
 
 - Required title-page format, programme name, student name, supervisor name, and ID number.
-- Whether the GCTU five-chapter report structure from the previous project should be followed.
+- Replace the placeholders in `docs/final-report/final-report-gctu-structure.md` with the exact student and supervisor details.
 - Required declaration, acknowledgement, abstract, and table-of-contents wording.
 - Required citation style, such as IEEE, Harvard, APA, or departmental style.
 - Required page numbering, margins, line spacing, and font.

@@ -139,4 +139,5 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Demo rehearsal result: complete.
 - Submission package folder: complete.
 - Previous-project format reference extraction: complete.
+- GCTU five-chapter report source: complete.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
