@@ -4,10 +4,11 @@ Use this folder for the project defence or viva.
 
 ## Open First
 
-1. `01-presentation-deck.pptx`
-2. `02-final-report-gctu-structure.pdf`
-3. `02-final-report-gctu-structure.docx`
-4. `03-demonstration-script.md`
+1. `00-complete-prep-guide.md`
+2. `01-presentation-deck.pptx`
+3. `02-final-report-gctu-structure.pdf`
+4. `02-final-report-gctu-structure.docx`
+5. `03-demonstration-script.md`
 
 ## Supporting Files
 

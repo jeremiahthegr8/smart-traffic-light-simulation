@@ -9,6 +9,7 @@ traffic-light project.
 
 | File | Purpose |
 |---|---|
+| `complete-prep-guide.md` | Single-file overview for someone preparing to understand or defend the project |
 | `final-report.md` | Final assembled report in Markdown format |
 | `final-report-gctu-structure.md` | Five-chapter report source following the previous GCTU pattern |
 | `final-report-gctu-structure.docx` | Editable Word version of the five-chapter report |
