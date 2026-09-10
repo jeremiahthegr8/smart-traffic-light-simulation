@@ -110,5 +110,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Do a final review pass for institution-specific formatting requirements.
+1. Confirm institution-specific title page, citation style, and submission format.
 2. Rehearse the demo with the presentation deck and saved dashboard evidence.
