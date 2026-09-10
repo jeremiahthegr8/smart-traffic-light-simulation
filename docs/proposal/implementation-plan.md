@@ -140,4 +140,5 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Submission package folder: complete.
 - Previous-project format reference extraction: complete.
 - GCTU five-chapter report source: complete.
+- Presentation-ready folder: complete.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
