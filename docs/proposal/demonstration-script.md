@@ -282,6 +282,7 @@ Say:
 
 | Purpose | File |
 |---|---|
+| Presentation deck | `docs/presentation/traffic-light-demo-v2.pptx` |
 | Final report draft | `docs/proposal/final-report-draft.md` |
 | Background | `docs/proposal/background-literature-review.md` |
 | Requirements | `docs/proposal/requirements-specification.md` |
