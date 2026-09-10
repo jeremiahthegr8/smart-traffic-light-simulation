@@ -57,12 +57,11 @@ The current `traffic-light-demo-corrected.pptx` already covers most of these sec
 and more evidence-focused. If the school expects the old defence structure exactly, create a
 16-slide version using the same topic order while keeping the traffic-light content and results.
 
-## Current Formatting Gap
+## Current Formatting Status
 
-The project is technically complete. The remaining formatting gap is institutional packaging:
+The project is technically complete. The supplied student and supervisor details have been added
+to the report title page. The remaining checks are institutional packaging rules:
 
-- add the exact student name and ID;
-- confirm the supervisor name;
 - confirm whether the report must use the GCTU five-chapter structure;
 - confirm whether the final report must be submitted as DOCX, PDF, or both;
 - confirm whether the defence deck must follow the old 16-slide section order.

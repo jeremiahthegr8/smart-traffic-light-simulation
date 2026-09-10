@@ -34,8 +34,9 @@ format.
 These depend on the school template or supervisor instructions and cannot be fully verified from
 the repository alone.
 
-- Required title-page format, programme name, student name, supervisor name, and ID number.
-- Replace the placeholders in `docs/final-report/final-report-gctu-structure.md` and regenerate `docs/final-report/final-report-gctu-structure.docx` and `docs/final-report/final-report-gctu-structure.pdf` with the exact student and supervisor details.
+- Required title-page format and programme name.
+- Student names, student IDs, and supervisor name have been added to `docs/final-report/final-report-gctu-structure.md`.
+- If title-page details change, regenerate `docs/final-report/final-report-gctu-structure.docx` and `docs/final-report/final-report-gctu-structure.pdf`.
 - Required declaration, acknowledgement, abstract, and table-of-contents wording.
 - Required citation style, such as IEEE, Harvard, APA, or departmental style.
 - Required page numbering, margins, line spacing, and font.

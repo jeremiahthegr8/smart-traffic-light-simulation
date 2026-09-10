@@ -110,7 +110,6 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Confirm exact student name, ID, supervisor name, citation style, and submission file type.
-2. Replace the report title-page placeholders, then regenerate the DOCX/PDF exports if those
-   details change.
+1. Confirm citation style and final submission file type with the department.
+2. Regenerate the DOCX/PDF exports if the report title-page details change.
 3. Submit from `submission/` or present from `presentation-ready/`.

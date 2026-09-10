@@ -9,6 +9,17 @@ how to demonstrate it, and how to answer likely examiner questions.
 
 Short title: **Simulation-Based Adaptive Smart Traffic-Light Controller**
 
+## Project Details
+
+| Item | Detail |
+|---|---|
+| Institution | GHANA COMMUNICATION TECHNOLOGY UNIVERSITY (GCTU) |
+| Faculty | FACULTY OF ENGINEERING |
+| Department | DEPARTMENT OF COMPUTER ENGINEERING |
+| Student 1 | HENYO THEOPHILUS - ID 4121230031 |
+| Student 2 | DJAGNI JERRY KODJO - ID 4121230036 |
+| Supervisor | DR. PHILLIP KISEMBE |
+
 ## One-Minute Summary
 
 This project implements a software simulation of a four-way smart traffic-light controller. It
@@ -377,15 +388,15 @@ If the live dashboard fails during the defence:
 5. Run `.\.venv\Scripts\python.exe -m pytest`.
 6. Explain that the screenshots and CSVs were generated from the same simulator and dashboard.
 
-## Final Personal Details Still Needed
+## Final Details Status
 
-Before final submission, replace:
+The student and supervisor details have been added:
 
-- `[STUDENT NAME]`
-- `[STUDENT ID]`
-- `[SUPERVISOR NAME]`
+- HENYO THEOPHILUS - ID 4121230031
+- DJAGNI JERRY KODJO - ID 4121230036
+- DR. PHILLIP KISEMBE
 
-Also confirm:
+Still confirm:
 
 - exact programme/faculty wording;
 - citation style required by the department;

@@ -57,5 +57,5 @@ Latest result:
 ## Before Final Submission
 
 Confirm the institution's required title page, citation style, page formatting, and accepted file
-types. Replace the student and supervisor placeholders before final submission; if those details
-are changed in the Markdown source, regenerate the DOCX and PDF exports.
+types. The student and supervisor details have been added; if those details change in the
+Markdown source, regenerate the DOCX and PDF exports.
