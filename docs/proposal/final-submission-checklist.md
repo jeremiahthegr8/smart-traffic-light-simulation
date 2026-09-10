@@ -9,6 +9,7 @@ format.
 - Final assembled report: `docs/final-report/final-report.md`
 - Presentation deck: `docs/presentation/traffic-light-demo-v2.pptx`
 - Demonstration script: `docs/proposal/demonstration-script.md`
+- Demo rehearsal result: `docs/proposal/demo-rehearsal-result.md`
 - Requirements specification: `docs/proposal/requirements-specification.md`
 - Implementation plan: `docs/proposal/implementation-plan.md`
 - Generated result package command: `scripts/dissertation_results.py`
@@ -39,6 +40,7 @@ the repository alone.
 
 ## Final Demo Rehearsal
 
+- Review the latest rehearsal result in `docs/proposal/demo-rehearsal-result.md`.
 - Open `docs/presentation/traffic-light-demo-v2.pptx`.
 - Start the dashboard with `.\.venv\Scripts\python.exe -m uvicorn trafficlight.api.app:app --host 127.0.0.1 --port 8000`.
 - Run one adaptive live simulation with `ns-heavy`.
