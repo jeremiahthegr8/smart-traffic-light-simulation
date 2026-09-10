@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -17,37 +18,63 @@ StepObserver = Callable[[dict], None]
 
 @dataclass
 class ApproachQueue:
-    queue: int = 0
+    arrival_times: deque[float] = field(default_factory=deque)
     total_arrivals: int = 0
     total_departures: int = 0
-    total_wait_s: float = 0.0
-    _arrival_credit: float = 0.0
+    completed_wait_s: float = 0.0
+    queue_delay_s: float = 0.0
     _discharge_credit: float = 0.0
 
-    def add_arrivals(self, arrival_rate_per_minute: float, dt_s: float, rng: random.Random) -> None:
-        self._arrival_credit += (arrival_rate_per_minute / 60.0) * dt_s
-        whole = int(self._arrival_credit)
-        self._arrival_credit -= whole
-        extra = 1 if rng.random() < self._arrival_credit else 0
-        arrivals = whole + extra
-        if extra:
-            self._arrival_credit = 0.0
-        self.queue += arrivals
+    @property
+    def queue(self) -> int:
+        return len(self.arrival_times)
+
+    def add_arrivals(
+        self,
+        arrival_rate_per_minute: float,
+        dt_s: float,
+        rng: random.Random,
+        timestamp_s: float,
+    ) -> None:
+        expected_arrivals = max(0.0, (arrival_rate_per_minute / 60.0) * dt_s)
+        arrivals = _poisson_sample(expected_arrivals, rng)
+        self.arrival_times.extend(timestamp_s for _ in range(arrivals))
         self.total_arrivals += arrivals
 
-    def discharge(self, dt_s: float, headway_s: float) -> None:
+    def discharge(self, dt_s: float, headway_s: float, timestamp_s: float) -> None:
         if self.queue <= 0:
             self._discharge_credit = 0.0
             return
         self._discharge_credit += dt_s / headway_s
         departures = min(self.queue, int(self._discharge_credit))
         if departures:
-            self.queue -= departures
+            departure_time = timestamp_s + dt_s
+            for _ in range(departures):
+                arrival_time = self.arrival_times.popleft()
+                self.completed_wait_s += departure_time - arrival_time
             self.total_departures += departures
             self._discharge_credit -= departures
 
     def accumulate_wait(self, dt_s: float) -> None:
-        self.total_wait_s += self.queue * dt_s
+        self.queue_delay_s += self.queue * dt_s
+
+    @property
+    def mean_completed_wait_s(self) -> float | None:
+        if self.total_departures == 0:
+            return None
+        return self.completed_wait_s / self.total_departures
+
+
+def _poisson_sample(expected_arrivals: float, rng: random.Random) -> int:
+    if expected_arrivals <= 0:
+        return 0
+    threshold = 2.718281828459045 ** -expected_arrivals
+    product = 1.0
+    count = 0
+    while product > threshold:
+        count += 1
+        product *= rng.random()
+    return count - 1
 
 
 @dataclass(frozen=True)
@@ -107,6 +134,7 @@ class SimulationEngine:
                     self.scenario.arrival_rate_for(approach, elapsed),
                     self.step_s,
                     self.rng,
+                    elapsed,
                 )
 
             true_demand = self._demand_snapshot(elapsed)
@@ -119,7 +147,7 @@ class SimulationEngine:
 
             for approach, queue in self.queues.items():
                 if status.signal_state.colour_for(approach) is Colour.GREEN:
-                    queue.discharge(self.step_s, self.discharge_headway_s)
+                    queue.discharge(self.step_s, self.discharge_headway_s, elapsed)
                 queue.accumulate_wait(self.step_s)
 
             self.max_queue = max(self.max_queue, *(queue.queue for queue in self.queues.values()))
@@ -129,8 +157,8 @@ class SimulationEngine:
 
         arrivals = sum(queue.total_arrivals for queue in self.queues.values())
         completed = sum(queue.total_departures for queue in self.queues.values())
-        total_wait = sum(queue.total_wait_s for queue in self.queues.values())
-        mean_wait = total_wait / completed if completed else 0.0
+        completed_wait = sum(queue.completed_wait_s for queue in self.queues.values())
+        mean_wait = completed_wait / completed if completed else 0.0
         summary = SimulationSummary(
             scenario=self.scenario.name,
             controller=self.controller_name,
@@ -182,8 +210,8 @@ class SimulationEngine:
         if self.logger is None or run_id is None:
             return
         completed = sum(queue.total_departures for queue in self.queues.values())
-        total_wait = sum(queue.total_wait_s for queue in self.queues.values())
-        mean_wait = total_wait / completed if completed else None
+        completed_wait = sum(queue.completed_wait_s for queue in self.queues.values())
+        mean_wait = completed_wait / completed if completed else None
         self.logger.record_step(
             run_id=run_id,
             timestamp=timestamp,
@@ -204,7 +232,7 @@ class SimulationEngine:
         if self.on_step is None:
             return
         completed = sum(queue.total_departures for queue in self.queues.values())
-        total_wait = sum(queue.total_wait_s for queue in self.queues.values())
+        completed_wait = sum(queue.completed_wait_s for queue in self.queues.values())
         self.on_step(
             {
                 "type": "step",
@@ -233,6 +261,6 @@ class SimulationEngine:
                     approach.value: queue.queue for approach, queue in self.queues.items()
                 },
                 "completed_vehicles": completed,
-                "mean_wait_s": total_wait / completed if completed else None,
+                "mean_wait_s": completed_wait / completed if completed else None,
             }
         )

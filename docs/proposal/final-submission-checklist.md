@@ -8,7 +8,7 @@ format.
 
 - Final assembled report: `docs/final-report/final-report.md`
 - GCTU five-chapter report source: `docs/final-report/final-report-gctu-structure.md`
-- Presentation deck: `docs/presentation/traffic-light-demo-v2.pptx`
+- Presentation deck: `docs/presentation/traffic-light-demo-corrected.pptx`
 - Demonstration script: `docs/proposal/demonstration-script.md`
 - Demo rehearsal result: `docs/proposal/demo-rehearsal-result.md`
 - Institution format reference: `docs/proposal/institution-format-reference.md`
@@ -45,7 +45,7 @@ the repository alone.
 ## Final Demo Rehearsal
 
 - Review the latest rehearsal result in `docs/proposal/demo-rehearsal-result.md`.
-- Open `docs/presentation/traffic-light-demo-v2.pptx`.
+- Open `docs/presentation/traffic-light-demo-corrected.pptx`.
 - Start the dashboard with `.\.venv\Scripts\python.exe -m uvicorn trafficlight.api.app:app --host 127.0.0.1 --port 8000`.
 - Run one adaptive live simulation with `ns-heavy`.
 - Show one detector-fault run using `ns-stuck-high`.

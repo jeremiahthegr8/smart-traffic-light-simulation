@@ -184,7 +184,7 @@ The latest verification command was:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-The suite passed with 22 tests and one Starlette TestClient deprecation warning.
+The suite passed with 24 tests and one Starlette TestClient deprecation warning.
 
 Browser evidence was captured using Playwright:
 
@@ -197,28 +197,31 @@ Browser evidence was captured using Playwright:
 The final benchmark used 300-second runs, 0.5-second simulation steps, and seeds 1 to 10. Each
 fixed/adaptive comparison used the same scenario and seed.
 
+The final experiment package was regenerated after correcting the simulator's arrival and waiting
+time accounting. Arrivals are now sampled from the configured per-minute demand rate, and mean
+wait is calculated from completed vehicles using each vehicle's recorded arrival and departure
+time.
+
 | Scenario | Fixed mean wait (s) | Adaptive mean wait (s) | Wait improvement | Fixed max queue | Adaptive max queue | Queue improvement | Completed change | Safety violations |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Balanced | 265.27 +/- 6.02 | 251.50 +/- 5.42 | +5.18% +/- 0.29 pp | 99.40 +/- 2.40 | 98.20 +/- 1.89 | +1.17% +/- 0.89 pp | +8.00 +/- 0.51 | 0 |
-| NS-heavy | 281.27 +/- 4.43 | 263.76 +/- 4.26 | +6.22% +/- 0.59 pp | 151.90 +/- 2.90 | 137.50 +/- 2.58 | +9.48% +/- 0.49 pp | +9.80 +/- 1.09 | 0 |
-| EW-heavy | 290.81 +/- 5.30 | 271.35 +/- 4.59 | +6.68% +/- 0.39 pp | 152.90 +/- 3.45 | 135.70 +/- 3.25 | +11.26% +/- 0.31 pp | +10.60 +/- 0.67 | 0 |
-| NS-burst | 287.02 +/- 6.49 | 271.31 +/- 6.20 | +5.47% +/- 0.42 pp | 131.10 +/- 3.01 | 120.90 +/- 2.90 | +7.78% +/- 0.67 pp | +8.50 +/- 0.67 | 0 |
-| Alternating peak | 301.63 +/- 5.75 | 279.81 +/- 5.88 | +7.24% +/- 0.53 pp | 115.40 +/- 2.76 | 118.40 +/- 2.55 | -2.65% +/- 1.80 pp | +12.20 +/- 1.09 | 0 |
+| Balanced | 23.91 +/- 1.25 | 21.89 +/- 1.25 | +8.33% +/- 3.90 pp | 13.00 +/- 1.31 | 11.70 +/- 0.93 | +9.18% +/- 5.82 pp | +1.90 +/- 1.90 | 0 |
+| NS-heavy | 43.93 +/- 3.38 | 29.51 +/- 2.37 | +32.54% +/- 4.23 pp | 44.00 +/- 5.99 | 22.90 +/- 4.83 | +48.77% +/- 4.75 pp | +41.60 +/- 3.67 | 0 |
+| EW-heavy | 50.15 +/- 2.77 | 28.48 +/- 2.15 | +43.11% +/- 3.57 pp | 40.90 +/- 3.71 | 20.20 +/- 2.86 | +50.84% +/- 4.11 pp | +42.70 +/- 3.33 | 0 |
+| NS-burst | 44.10 +/- 1.71 | 37.82 +/- 3.21 | +14.46% +/- 5.07 pp | 39.90 +/- 3.97 | 28.40 +/- 4.08 | +29.54% +/- 3.87 pp | +36.50 +/- 3.18 | 0 |
+| Alternating peak | 54.58 +/- 3.50 | 38.09 +/- 5.24 | +30.76% +/- 6.20 pp | 38.90 +/- 3.80 | 30.70 +/- 4.79 | +21.81% +/- 6.93 pp | +23.50 +/- 2.98 | 0 |
 
 Adaptive control reduced mean waiting time in all five scenarios. It also completed more vehicles
-in all five scenarios. Maximum queue length improved in four scenarios, but the alternating-peak
-scenario showed a small maximum-queue increase despite lower mean waiting time and higher
-completed-vehicle count.
+in all five scenarios. Maximum queue length improved in all five scenarios.
 
 Detector-fault experiments used the NS-heavy scenario with the same duration, step size, and seed
 set.
 
 | Fault profile | Runs | Mean completed | Mean wait (s) | Mean max queue | Safety violations |
 |---|---:|---:|---:|---:|---:|
-| none | 10 | 225.80 | 263.76 | 137.50 | 0 |
-| ns-stuck-high | 10 | 228.40 | 258.04 | 131.20 | 0 |
-| ew-stuck-low | 10 | 232.00 | 253.49 | 105.40 | 0 |
-| all-stuck-low-midrun | 10 | 196.60 | 314.48 | 146.90 | 0 |
+| none | 10 | 196.50 | 29.51 | 22.90 | 0 |
+| ns-stuck-high | 10 | 198.40 | 26.52 | 17.40 | 0 |
+| ew-stuck-low | 10 | 197.50 | 24.29 | 17.30 | 0 |
+| all-stuck-low-midrun | 10 | 160.60 | 34.18 | 41.00 | 0 |
 
 The all-stuck-low-midrun profile caused the worst performance degradation, with lower completed
 vehicles and higher mean wait. However, all detector-fault experiments still recorded zero
@@ -228,13 +231,12 @@ conflicting-green violations.
 
 The results support the project claim that adaptive timing can reduce waiting time compared with a
 fixed-time baseline under unequal or changing traffic demand. The improvement is strongest in the
-alternating-peak and EW-heavy scenarios, both of which contain clear demand imbalance.
+EW-heavy and NS-heavy scenarios, both of which contain clear demand imbalance.
 
 The queue results show that a single metric is not enough to evaluate controller behaviour.
-Adaptive control improved mean wait and throughput in the alternating-peak scenario but produced a
-slightly higher maximum queue. This is a useful tradeoff to discuss: the controller improved
-overall movement through the intersection while allowing a larger short-lived peak queue during a
-demand transition.
+Adaptive control improved completed-vehicle wait, maximum queue, and throughput across the
+benchmark set, while detector-fault experiments showed that poor detector input can still reduce
+performance.
 
 The detector-fault results show that bad demand input can reduce performance. This is expected for
 an adaptive controller. The important safety result is that detector faults do not directly command
@@ -248,7 +250,7 @@ green-time policy, repeatable traffic scenarios, SQLite logging, FastAPI API, We
 benchmark runner, detector-fault simulation, CSV/SVG export, and automated tests.
 
 The final experiments show that the adaptive controller reduced mean waiting time by approximately
-5.18% to 7.24% across the tested scenarios and completed more vehicles than the fixed-time
+8.33% to 43.11% across the tested scenarios and completed more vehicles than the fixed-time
 baseline. The project also maintained zero conflicting-green violations across the benchmark and
 detector-fault experiments.
 

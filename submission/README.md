@@ -11,7 +11,7 @@ traffic-light project.
 |---|---|
 | `final-report.md` | Final assembled report in Markdown format |
 | `final-report-gctu-structure.md` | Five-chapter report source following the previous GCTU pattern |
-| `traffic-light-demo-v2.pptx` | Revised presentation deck |
+| `traffic-light-demo-corrected.pptx` | Corrected presentation deck |
 | `demonstration-script.md` | Short viva/demo walkthrough script |
 | `final-submission-checklist.md` | Final checks before submission |
 | `demo-rehearsal-result.md` | Recorded result from the live dashboard rehearsal |
@@ -45,7 +45,7 @@ The latest test command used was:
 Latest result:
 
 ```text
-22 passed, 1 warning
+24 passed, 1 warning
 ```
 
 ## Before Final Submission

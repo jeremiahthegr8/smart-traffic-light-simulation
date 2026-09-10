@@ -35,7 +35,7 @@ phases, vehicle queues, detector values, benchmark tables, and aggregate charts.
 
 The final benchmark used five traffic scenarios, 10 random seeds, 300-second runs, and a
 0.5-second simulation step. Adaptive control reduced mean waiting time in every tested scenario,
-with improvements from 5.18% to 7.24%. It also completed more vehicles than the fixed-time
+with improvements from 8.33% to 43.11%. It also completed more vehicles than the fixed-time
 baseline in every scenario. The controller recorded zero conflicting-green violations across the
 benchmark and detector-fault experiments.
 
@@ -326,7 +326,7 @@ Presentation evidence includes:
 - `output/playwright/dashboard-live-simulation.png`
 - `output/playwright/dashboard-fault-mismatch.png`
 - `output/playwright/dashboard-benchmark-results.png`
-- `docs/presentation/traffic-light-demo-v2.pptx`
+- `traffic-light-demo-corrected.pptx`
 
 ### 4.5 Testing and Validation
 
@@ -345,7 +345,7 @@ The automated test suite covers:
 Latest result:
 
 ```text
-22 passed, 1 warning
+24 passed, 1 warning
 ```
 
 The warning is a Starlette TestClient deprecation warning and does not indicate a project test
@@ -356,13 +356,18 @@ failure.
 The final benchmark used 300-second runs, 0.5-second simulation steps, and seeds 1 to 10. Each
 fixed/adaptive comparison used the same scenario and seed.
 
+The final experiment package was regenerated after correcting the simulator's arrival and waiting
+time accounting. Arrivals are now sampled from the configured per-minute demand rate, and mean
+wait is calculated from completed vehicles using each vehicle's recorded arrival and departure
+time.
+
 | Scenario | Fixed mean wait (s) | Adaptive mean wait (s) | Wait improvement | Completed change | Safety violations |
 |---|---:|---:|---:|---:|---:|
-| Balanced | 265.27 +/- 6.02 | 251.50 +/- 5.42 | +5.18% +/- 0.29 pp | +8.00 +/- 0.51 | 0 |
-| NS-heavy | 281.27 +/- 4.43 | 263.76 +/- 4.26 | +6.22% +/- 0.59 pp | +9.80 +/- 1.09 | 0 |
-| EW-heavy | 290.81 +/- 5.30 | 271.35 +/- 4.59 | +6.68% +/- 0.39 pp | +10.60 +/- 0.67 | 0 |
-| NS-burst | 287.02 +/- 6.49 | 271.31 +/- 6.20 | +5.47% +/- 0.42 pp | +8.50 +/- 0.67 | 0 |
-| Alternating peak | 301.63 +/- 5.75 | 279.81 +/- 5.88 | +7.24% +/- 0.53 pp | +12.20 +/- 1.09 | 0 |
+| Balanced | 23.91 +/- 1.25 | 21.89 +/- 1.25 | +8.33% +/- 3.90 pp | +1.90 +/- 1.90 | 0 |
+| NS-heavy | 43.93 +/- 3.38 | 29.51 +/- 2.37 | +32.54% +/- 4.23 pp | +41.60 +/- 3.67 | 0 |
+| EW-heavy | 50.15 +/- 2.77 | 28.48 +/- 2.15 | +43.11% +/- 3.57 pp | +42.70 +/- 3.33 | 0 |
+| NS-burst | 44.10 +/- 1.71 | 37.82 +/- 3.21 | +14.46% +/- 5.07 pp | +36.50 +/- 3.18 | 0 |
+| Alternating peak | 54.58 +/- 3.50 | 38.09 +/- 5.24 | +30.76% +/- 6.20 pp | +23.50 +/- 2.98 | 0 |
 
 Adaptive control reduced mean waiting time in all five scenarios and completed more vehicles in
 all five scenarios.
@@ -372,10 +377,10 @@ set.
 
 | Fault profile | Runs | Mean completed | Mean wait (s) | Mean max queue | Safety violations |
 |---|---:|---:|---:|---:|---:|
-| none | 10 | 225.80 | 263.76 | 137.50 | 0 |
-| ns-stuck-high | 10 | 228.40 | 258.04 | 131.20 | 0 |
-| ew-stuck-low | 10 | 232.00 | 253.49 | 105.40 | 0 |
-| all-stuck-low-midrun | 10 | 196.60 | 314.48 | 146.90 | 0 |
+| none | 10 | 196.50 | 29.51 | 22.90 | 0 |
+| ns-stuck-high | 10 | 198.40 | 26.52 | 17.40 | 0 |
+| ew-stuck-low | 10 | 197.50 | 24.29 | 17.30 | 0 |
+| all-stuck-low-midrun | 10 | 160.60 | 34.18 | 41.00 | 0 |
 
 The all-stuck-low-midrun fault produced the worst performance degradation. However, all fault
 experiments still recorded zero conflicting-green violations.
@@ -408,8 +413,9 @@ browser dashboard, exports report artifacts, and tests detector faults.
 
 The results support the central project claim. Adaptive control improved mean waiting time under
 balanced, asymmetric, burst, and changing-demand conditions while preserving safety. The
-alternating-peak scenario showed that one metric is not enough: adaptive control reduced mean wait
-and increased completed vehicles, but maximum queue rose slightly.
+adaptive controller improved completed-vehicle wait, maximum queue, and throughput across the
+benchmark set, while detector-fault experiments showed that poor detector input can still reduce
+performance.
 
 Detector faults affected performance but did not create unsafe signal states. This is because
 faults change only the demand input seen by the controller. They do not bypass the phase
@@ -445,7 +451,7 @@ Future work could add:
 
 ### 5.8 Final Conclusion
 
-The final experiments show that adaptive control reduced mean waiting time by 5.18% to 7.24%
+The final experiments show that adaptive control reduced mean waiting time by 8.33% to 43.11%
 across the tested scenarios. The adaptive controller also completed more vehicles than the
 fixed-time baseline in every scenario. Across all benchmark and detector-fault experiments, the
 system recorded zero conflicting-green violations. The project therefore meets the approved

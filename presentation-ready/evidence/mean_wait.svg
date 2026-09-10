@@ -20,38 +20,38 @@
 <line x1="67.0" y1="364.0" x2="1010.0" y2="364.0" class="axis" />
 <text x="62" y="368.0" text-anchor="end" class="tick">0</text>
 <line x1="67.0" y1="302.0" x2="1010.0" y2="302.0" class="grid" />
-<text x="62" y="306.0" text-anchor="end" class="tick">60</text>
+<text x="62" y="306.0" text-anchor="end" class="tick">11</text>
 <line x1="67.0" y1="240.0" x2="1010.0" y2="240.0" class="grid" />
-<text x="62" y="244.0" text-anchor="end" class="tick">121</text>
+<text x="62" y="244.0" text-anchor="end" class="tick">22</text>
 <line x1="67.0" y1="178.0" x2="1010.0" y2="178.0" class="grid" />
-<text x="62" y="182.0" text-anchor="end" class="tick">181</text>
+<text x="62" y="182.0" text-anchor="end" class="tick">33</text>
 <line x1="67.0" y1="116.0" x2="1010.0" y2="116.0" class="grid" />
-<text x="62" y="120.0" text-anchor="end" class="tick">241</text>
+<text x="62" y="120.0" text-anchor="end" class="tick">44</text>
 <line x1="67.0" y1="54.0" x2="1010.0" y2="54.0" class="grid" />
-<text x="62" y="58.0" text-anchor="end" class="tick">302</text>
+<text x="62" y="58.0" text-anchor="end" class="tick">55</text>
 <text x="165.8" y="408" text-anchor="middle" class="scenario">alternating peak</text>
 <rect x="118.8" y="54.0" width="42.0" height="310.0" fill="#637083" rx="4" />
-<text x="139.8" y="48.0" text-anchor="middle" class="value">301.6</text>
-<rect x="170.8" y="76.4" width="42.0" height="287.6" fill="#1f6feb" rx="4" />
-<text x="191.8" y="70.4" text-anchor="middle" class="value">279.8</text>
+<text x="139.8" y="48.0" text-anchor="middle" class="value">54.6</text>
+<rect x="170.8" y="147.7" width="42.0" height="216.3" fill="#1f6feb" rx="4" />
+<text x="191.8" y="141.7" text-anchor="middle" class="value">38.1</text>
 <text x="353.4" y="408" text-anchor="middle" class="scenario">balanced</text>
-<rect x="306.4" y="91.4" width="42.0" height="272.6" fill="#637083" rx="4" />
-<text x="327.4" y="85.4" text-anchor="middle" class="value">265.3</text>
-<rect x="358.4" y="105.5" width="42.0" height="258.5" fill="#1f6feb" rx="4" />
-<text x="379.4" y="99.5" text-anchor="middle" class="value">251.5</text>
+<rect x="306.4" y="228.2" width="42.0" height="135.8" fill="#637083" rx="4" />
+<text x="327.4" y="222.2" text-anchor="middle" class="value">23.9</text>
+<rect x="358.4" y="239.7" width="42.0" height="124.3" fill="#1f6feb" rx="4" />
+<text x="379.4" y="233.7" text-anchor="middle" class="value">21.9</text>
 <text x="541.0" y="408" text-anchor="middle" class="scenario">ew heavy</text>
-<rect x="494.0" y="65.1" width="42.0" height="298.9" fill="#637083" rx="4" />
-<text x="515.0" y="59.1" text-anchor="middle" class="value">290.8</text>
-<rect x="546.0" y="85.1" width="42.0" height="278.9" fill="#1f6feb" rx="4" />
-<text x="567.0" y="79.1" text-anchor="middle" class="value">271.4</text>
+<rect x="494.0" y="79.2" width="42.0" height="284.8" fill="#637083" rx="4" />
+<text x="515.0" y="73.2" text-anchor="middle" class="value">50.1</text>
+<rect x="546.0" y="202.2" width="42.0" height="161.8" fill="#1f6feb" rx="4" />
+<text x="567.0" y="196.2" text-anchor="middle" class="value">28.5</text>
 <text x="728.6" y="408" text-anchor="middle" class="scenario">ns burst</text>
-<rect x="681.6" y="69.0" width="42.0" height="295.0" fill="#637083" rx="4" />
-<text x="702.6" y="63.0" text-anchor="middle" class="value">287.0</text>
-<rect x="733.6" y="85.2" width="42.0" height="278.8" fill="#1f6feb" rx="4" />
-<text x="754.6" y="79.2" text-anchor="middle" class="value">271.3</text>
+<rect x="681.6" y="113.5" width="42.0" height="250.5" fill="#637083" rx="4" />
+<text x="702.6" y="107.5" text-anchor="middle" class="value">44.1</text>
+<rect x="733.6" y="149.2" width="42.0" height="214.8" fill="#1f6feb" rx="4" />
+<text x="754.6" y="143.2" text-anchor="middle" class="value">37.8</text>
 <text x="916.2" y="408" text-anchor="middle" class="scenario">ns heavy</text>
-<rect x="869.2" y="74.9" width="42.0" height="289.1" fill="#637083" rx="4" />
-<text x="890.2" y="68.9" text-anchor="middle" class="value">281.3</text>
-<rect x="921.2" y="92.9" width="42.0" height="271.1" fill="#1f6feb" rx="4" />
-<text x="942.2" y="86.9" text-anchor="middle" class="value">263.8</text>
+<rect x="869.2" y="114.5" width="42.0" height="249.5" fill="#637083" rx="4" />
+<text x="890.2" y="108.5" text-anchor="middle" class="value">43.9</text>
+<rect x="921.2" y="196.4" width="42.0" height="167.6" fill="#1f6feb" rx="4" />
+<text x="942.2" y="190.4" text-anchor="middle" class="value">29.5</text>
 </svg>

@@ -3,13 +3,14 @@
 Date: 10 September 2026
 
 This rehearsal checked the presentation files, saved evidence, API startup, live dashboard run,
-detector-fault run, and dashboard benchmark workflow.
+detector-fault run, and dashboard benchmark workflow. It was refreshed after the simulator was
+corrected to use demand-rate arrivals and completed-vehicle waiting time.
 
 ## Files Checked
 
 | Item | Result |
 |---|---|
-| Presentation deck | `docs/presentation/traffic-light-demo-v2.pptx` exists |
+| Presentation deck | `01-presentation-deck.pptx` exists |
 | Final assembled report | `docs/final-report/final-report.md` exists |
 | Live dashboard screenshot | `output/playwright/dashboard-live-simulation.png` exists |
 | Detector-fault screenshot | `output/playwright/dashboard-fault-mismatch.png` exists |
@@ -45,9 +46,9 @@ Settings:
 Observed result:
 
 - Status: complete
-- Completed vehicles: 20
-- Mean wait: 20.6 seconds
-- Max queue: 7
+- Completed vehicles: 8
+- Mean wait: 4.9 seconds
+- Max queue: 9
 - Safety violations: 0
 
 This confirms that the live dashboard path works for a short presentation rehearsal. The final
@@ -67,12 +68,12 @@ Settings:
 Observed result:
 
 - Status: complete
-- Completed vehicles: 25
-- Mean wait: 14.8 seconds
-- Max queue: 8
+- Completed vehicles: 14
+- Mean wait: 3.3 seconds
+- Max queue: 3
 - Safety violations: 0
-- North queue/detector: 3 true queue, 80 detector demand
-- South queue/detector: 2 true queue, 80 detector demand
+- North queue/detector: 0 true queue, 80 detector demand
+- South queue/detector: 3 true queue, 80 detector demand
 
 This confirms that the dashboard visibly separates true queue values from faulty detector
 readings.

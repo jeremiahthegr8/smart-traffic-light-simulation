@@ -53,7 +53,7 @@ repackage the final report into this five-chapter structure.
 | Body style | Mostly direct text or bullet-like sections |
 | Common sections | Introduction, problem statement, justification, objectives, significance, scope, methodology, literature review, research gap, architecture, implementation, flaws/solutions, flow, conclusion, references |
 
-The current `traffic-light-demo-v2.pptx` already covers most of these sections, but it is shorter
+The current `traffic-light-demo-corrected.pptx` already covers most of these sections, but it is shorter
 and more evidence-focused. If the school expects the old defence structure exactly, create a
 16-slide version using the same topic order while keeping the traffic-light content and results.
 

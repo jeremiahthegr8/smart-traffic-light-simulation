@@ -127,6 +127,7 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Dissertation results package script: complete for MVP.
 - Dashboard fault-profile visualisation: complete for MVP.
 - Statistical spread measures and benchmark aggregate dashboard charts: complete for MVP.
+- Corrected arrival-rate generation and completed-vehicle mean-wait metric: complete.
 - Requirements specification draft: complete.
 - Background and literature review draft: complete.
 - Methodology and implementation draft: complete.
@@ -141,4 +142,4 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Previous-project format reference extraction: complete.
 - GCTU five-chapter report source: complete.
 - Presentation-ready folder: complete.
-- Tests: initial safety, scenario, storage, benchmark, and API coverage complete.
+- Tests: safety, scenario, storage, benchmark, API, arrival-rate, and wait-metric coverage complete.
