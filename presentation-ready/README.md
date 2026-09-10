@@ -15,6 +15,8 @@ Use this folder for the project defence or viva.
 - `05-final-submission-checklist.md`: final checks before submission.
 - `06-institution-format-reference.md`: notes taken from the previous project format.
 - `07-final-details-needed.md`: exact personal/institution details still needing confirmation.
+- `08-defence-qa-cheat-sheet.md`: short answers for likely examiner questions.
+- `09-methodology-implementation.md`: methodology and implementation chapter draft.
 - `02-final-report-gctu-structure.md`: editable Markdown source for the report.
 - `screenshots/`: fallback dashboard screenshots.
 - `evidence/`: CSV summaries, SVG charts, and final result summary.

@@ -17,8 +17,10 @@ traffic-light project.
 | `demonstration-script.md` | Short viva/demo walkthrough script |
 | `final-submission-checklist.md` | Final checks before submission |
 | `final-details-needed.md` | Exact personal/institution details still needing confirmation |
+| `defence-qa-cheat-sheet.md` | Short answers for likely examiner questions |
 | `demo-rehearsal-result.md` | Recorded result from the live dashboard rehearsal |
 | `institution-format-reference.md` | Format notes extracted from the previous project files |
+| `methodology-implementation.md` | Methodology and implementation chapter draft |
 
 ## Evidence Files
 
