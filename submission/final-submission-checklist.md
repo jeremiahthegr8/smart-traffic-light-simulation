@@ -10,6 +10,7 @@ format.
 - Presentation deck: `docs/presentation/traffic-light-demo-v2.pptx`
 - Demonstration script: `docs/proposal/demonstration-script.md`
 - Demo rehearsal result: `docs/proposal/demo-rehearsal-result.md`
+- Institution format reference: `docs/proposal/institution-format-reference.md`
 - Requirements specification: `docs/proposal/requirements-specification.md`
 - Implementation plan: `docs/proposal/implementation-plan.md`
 - Generated result package command: `scripts/dissertation_results.py`
@@ -31,12 +32,14 @@ These depend on the school template or supervisor instructions and cannot be ful
 the repository alone.
 
 - Required title-page format, programme name, student name, supervisor name, and ID number.
+- Whether the GCTU five-chapter report structure from the previous project should be followed.
 - Required declaration, acknowledgement, abstract, and table-of-contents wording.
 - Required citation style, such as IEEE, Harvard, APA, or departmental style.
 - Required page numbering, margins, line spacing, and font.
 - Required figure/table caption format and numbering style.
 - Required appendix format and whether source-code listings are needed.
 - Required submission format, such as PDF, DOCX, printed copy, Git repository, or presentation.
+- Whether the defence deck must use the old 16-slide topic order.
 
 ## Final Demo Rehearsal
 

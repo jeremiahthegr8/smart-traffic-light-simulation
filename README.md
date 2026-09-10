@@ -110,5 +110,5 @@ src/trafficlight/
 
 ## Next Milestones
 
-1. Confirm institution-specific title page, citation style, and submission format.
-2. Convert the final report to PDF or DOCX if the institution requires it.
+1. Confirm exact student name, ID, supervisor name, citation style, and submission file type.
+2. Repackage the final report into the GCTU five-chapter DOCX/PDF format if required.

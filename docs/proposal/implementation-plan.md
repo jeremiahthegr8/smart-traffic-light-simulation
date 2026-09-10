@@ -138,4 +138,5 @@ For final reporting, run multiple seeds and report average, spread, and safety v
 - Final submission checklist: complete.
 - Demo rehearsal result: complete.
 - Submission package folder: complete.
+- Previous-project format reference extraction: complete.
 - Tests: initial safety, scenario, storage, benchmark, and API coverage complete.

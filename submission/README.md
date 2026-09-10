@@ -14,6 +14,7 @@ traffic-light project.
 | `demonstration-script.md` | Short viva/demo walkthrough script |
 | `final-submission-checklist.md` | Final checks before submission |
 | `demo-rehearsal-result.md` | Recorded result from the live dashboard rehearsal |
+| `institution-format-reference.md` | Format notes extracted from the previous project files |
 
 ## Evidence Files
 
@@ -49,5 +50,5 @@ Latest result:
 ## Before Final Submission
 
 Confirm the institution's required title page, citation style, page formatting, and accepted file
-types. If the school requires PDF or DOCX, convert `final-report.md` using the school-approved
-template before submitting.
+types. If the school requires the previous GCTU structure, repackage `final-report.md` into the
+five-chapter DOCX/PDF format described in `institution-format-reference.md`.
