@@ -11,6 +11,8 @@ traffic-light project.
 |---|---|
 | `final-report.md` | Final assembled report in Markdown format |
 | `final-report-gctu-structure.md` | Five-chapter report source following the previous GCTU pattern |
+| `final-report-gctu-structure.docx` | Editable Word version of the five-chapter report |
+| `final-report-gctu-structure.pdf` | PDF export of the five-chapter report |
 | `traffic-light-demo-corrected.pptx` | Corrected presentation deck |
 | `demonstration-script.md` | Short viva/demo walkthrough script |
 | `final-submission-checklist.md` | Final checks before submission |
@@ -51,5 +53,5 @@ Latest result:
 ## Before Final Submission
 
 Confirm the institution's required title page, citation style, page formatting, and accepted file
-types. If the school requires DOCX or PDF, convert `final-report-gctu-structure.md` after filling
-the student and supervisor placeholders.
+types. Replace the student and supervisor placeholders before final submission; if those details
+are changed in the Markdown source, regenerate the DOCX and PDF exports.

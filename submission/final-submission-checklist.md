@@ -8,7 +8,9 @@ format.
 
 - Final assembled report: `docs/final-report/final-report.md`
 - GCTU five-chapter report source: `docs/final-report/final-report-gctu-structure.md`
-- Presentation deck: `traffic-light-demo-corrected.pptx`
+- Editable Word report export: `docs/final-report/final-report-gctu-structure.docx`
+- PDF report export: `docs/final-report/final-report-gctu-structure.pdf`
+- Presentation deck: `docs/presentation/traffic-light-demo-corrected.pptx`
 - Demonstration script: `docs/proposal/demonstration-script.md`
 - Demo rehearsal result: `docs/proposal/demo-rehearsal-result.md`
 - Institution format reference: `docs/proposal/institution-format-reference.md`
@@ -33,7 +35,7 @@ These depend on the school template or supervisor instructions and cannot be ful
 the repository alone.
 
 - Required title-page format, programme name, student name, supervisor name, and ID number.
-- Replace the placeholders in `docs/final-report/final-report-gctu-structure.md` with the exact student and supervisor details.
+- Replace the placeholders in `docs/final-report/final-report-gctu-structure.md` and regenerate `docs/final-report/final-report-gctu-structure.docx` and `docs/final-report/final-report-gctu-structure.pdf` with the exact student and supervisor details.
 - Required declaration, acknowledgement, abstract, and table-of-contents wording.
 - Required citation style, such as IEEE, Harvard, APA, or departmental style.
 - Required page numbering, margins, line spacing, and font.
@@ -45,7 +47,7 @@ the repository alone.
 ## Final Demo Rehearsal
 
 - Review the latest rehearsal result in `docs/proposal/demo-rehearsal-result.md`.
-- Open `traffic-light-demo-corrected.pptx`.
+- Open `docs/presentation/traffic-light-demo-corrected.pptx`.
 - Start the dashboard with `.\.venv\Scripts\python.exe -m uvicorn trafficlight.api.app:app --host 127.0.0.1 --port 8000`.
 - Run one adaptive live simulation with `ns-heavy`.
 - Show one detector-fault run using `ns-stuck-high`.
