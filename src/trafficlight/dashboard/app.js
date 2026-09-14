@@ -129,6 +129,7 @@ const elements = {
   evidenceWait: document.querySelector("#evidence-wait"),
   evidenceFault: document.querySelector("#evidence-fault"),
   faultDescription: document.querySelector("#fault-description"),
+  examinerSummary: document.querySelector("#examiner-summary"),
 };
 
 function setStatus(text) {
@@ -514,6 +515,57 @@ function updateFaultDetails() {
   elements.evidenceFault.className = "benchmark-negative";
 }
 
+function activeScenarioName() {
+  return elements.customEnabled.checked ? "custom-dashboard" : elements.scenario.value;
+}
+
+function activeScenarioLabel() {
+  if (!elements.customEnabled.checked) {
+    return elements.scenario.value;
+  }
+  return `custom arrivals (${Object.entries(customArrivals())
+    .map(([key, value]) => `${key} ${value}/min`)
+    .join(", ")})`;
+}
+
+function setExaminerSummary(text) {
+  elements.examinerSummary.textContent = text;
+}
+
+function signedNumber(value, decimals = 1) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  const number = Number(value);
+  return `${number >= 0 ? "+" : ""}${number.toFixed(decimals)}`;
+}
+
+function updateExaminerSummaryFromLiveRun(summary) {
+  const controller = summary.controller === "adaptive" ? "Adaptive" : "Fixed-time";
+  setExaminerSummary(
+    `${controller} control on ${activeScenarioLabel()} completed ${summary.completed} vehicles with ` +
+      `${summary.mean_wait_s.toFixed(1)}s mean wait, maximum queue ${summary.max_queue}, and ` +
+      `${summary.conflicting_green_violations} conflicting-green safety violations.`
+  );
+}
+
+function updateExaminerSummaryFromComparison() {
+  const aggregate = selectedAdaptiveAggregate();
+  if (!aggregate || aggregate.mean_wait_improvement_pct === null || aggregate.mean_wait_improvement_pct === undefined) {
+    setExaminerSummary("Comparison completed, but no adaptive improvement value is available for the selected scenario.");
+    return;
+  }
+  const queueImprovement =
+    aggregate.mean_max_queue_improvement_pct === null || aggregate.mean_max_queue_improvement_pct === undefined
+      ? "no max-queue percentage available"
+      : `${signedNumber(aggregate.mean_max_queue_improvement_pct)}% max-queue change`;
+  setExaminerSummary(
+    `For ${activeScenarioLabel()}, adaptive control produced ${signedNumber(aggregate.mean_wait_improvement_pct)}% ` +
+      `mean-wait change, ${signedNumber(aggregate.mean_completed_delta_vs_fixed)} completed vehicles versus fixed-time, ` +
+      `${queueImprovement}, and ${aggregate.total_conflicting_green_violations} conflicting-green safety violations.`
+  );
+}
+
 function applySummary(summary) {
   state.lastSummary = summary;
   elements.completed.textContent = summary.completed;
@@ -526,19 +578,22 @@ function applySummary(summary) {
       : `${summary.conflicting_green_violations} violations`;
   elements.evidenceSafety.classList.toggle("benchmark-positive", summary.conflicting_green_violations === 0);
   elements.evidenceSafety.classList.toggle("benchmark-negative", summary.conflicting_green_violations !== 0);
+  updateExaminerSummaryFromLiveRun(summary);
 }
 
 function applyEvidenceFromBenchmark(rows) {
-  const selected = elements.customEnabled.checked ? "custom-dashboard" : elements.scenario.value;
+  const selected = activeScenarioName();
   const adaptive = rows.find((row) => row.scenario === selected && row.controller === "adaptive");
   if (!adaptive || adaptive.mean_wait_improvement_pct === null || adaptive.mean_wait_improvement_pct === undefined) {
     elements.evidenceWait.textContent = "No comparison";
     elements.evidenceWait.className = "benchmark-negative";
+    updateExaminerSummaryFromComparison();
     return;
   }
   const value = adaptive.mean_wait_improvement_pct;
   elements.evidenceWait.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(1)}% wait`;
   elements.evidenceWait.className = value >= 0 ? "benchmark-positive" : "benchmark-negative";
+  updateExaminerSummaryFromComparison();
 }
 
 function resetRunView() {
@@ -553,6 +608,7 @@ function resetRunView() {
   elements.busiestApproach.textContent = "-";
   elements.detectorMismatch.textContent = "0";
   elements.detectorMismatch.className = "";
+  setExaminerSummary("Run a simulation or comparison to generate a plain-English result summary.");
   elements.phase.textContent = "all_red_to_ns";
   elements.phaseTime.textContent = "0.0s";
   elements.reason.textContent = "startup";
@@ -1093,21 +1149,18 @@ function applyPreset(name) {
 }
 
 function selectedAdaptiveAggregate() {
-  const selected = elements.customEnabled.checked ? "custom-dashboard" : elements.scenario.value;
+  const selected = activeScenarioName();
   return state.lastBenchmarkAggregates.find(
     (row) => row.scenario === selected && row.controller === "adaptive"
   );
 }
 
 function evidenceSummaryText() {
-  const scenarioName = elements.customEnabled.checked
-    ? `custom (${Object.entries(customArrivals()).map(([key, value]) => `${key} ${value}/min`).join(", ")})`
-    : elements.scenario.value;
   const lines = [
     "Simulation-Based Adaptive Smart Traffic-Light Controller Evidence",
     "",
     `Controller: ${elements.controller.value}`,
-    `Scenario: ${scenarioName}`,
+    `Scenario: ${activeScenarioLabel()}`,
     `Fault profile: ${elements.faultProfile.value}`,
     `Duration: ${elements.duration.value}s`,
     `Step: ${elements.step.value}s`,
@@ -1133,7 +1186,8 @@ function evidenceSummaryText() {
     `Wait result badge: ${elements.evidenceWait.textContent}`,
     `Detector fault badge: ${elements.evidenceFault.textContent}`,
     `Busiest approach: ${elements.busiestApproach.textContent}`,
-    `Detector mismatch: ${elements.detectorMismatch.textContent}`
+    `Detector mismatch: ${elements.detectorMismatch.textContent}`,
+    `Examiner summary: ${elements.examinerSummary.textContent}`
   );
 
   const aggregate = selectedAdaptiveAggregate();

@@ -413,6 +413,7 @@ input {
 
 .evidence-strip div,
 .fault-card,
+.examiner-card,
 .presenter-cues {
   padding: 10px;
   border: 1px solid var(--border);
@@ -422,6 +423,7 @@ input {
 
 .evidence-strip span,
 .fault-card span,
+.examiner-card span,
 .presenter-cues span {
   display: block;
   color: var(--muted);
@@ -436,7 +438,8 @@ input {
   font-size: 13px;
 }
 
-.fault-card p {
+.fault-card p,
+.examiner-card p {
   margin-top: 8px;
   color: var(--muted);
   font-size: 13px;
