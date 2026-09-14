@@ -4,6 +4,70 @@ const benchmarkScenarios = ["balanced", "ns-heavy", "ew-heavy", "ns-burst", "alt
 const history = [];
 const maxHistory = 80;
 const svgNamespace = "http://www.w3.org/2000/svg";
+const presetConfig = {
+  "adaptive-ns": {
+    controller: "adaptive",
+    scenario: "ns-heavy",
+    faultProfile: "none",
+    duration: 120,
+    step: 1,
+    seed: 42,
+  },
+  "adaptive-ew": {
+    controller: "adaptive",
+    scenario: "ew-heavy",
+    faultProfile: "none",
+    duration: 120,
+    step: 1,
+    seed: 42,
+  },
+  burst: {
+    controller: "adaptive",
+    scenario: "ns-burst",
+    faultProfile: "none",
+    duration: 180,
+    step: 1,
+    seed: 42,
+  },
+  fixed: {
+    controller: "fixed",
+    scenario: "ns-heavy",
+    faultProfile: "none",
+    duration: 120,
+    step: 1,
+    seed: 42,
+  },
+  fault: {
+    controller: "adaptive",
+    scenario: "ns-heavy",
+    faultProfile: "ns-stuck-high",
+    duration: 120,
+    step: 1,
+    seed: 42,
+  },
+};
+const demoNotes = {
+  balanced: {
+    title: "Balanced traffic",
+    description: "Shows the controller under even demand, where adaptive control should behave conservatively and still preserve safety.",
+  },
+  "ns-heavy": {
+    title: "North/South heavy demand",
+    description: "Shows adaptive timing giving more service to the busier North/South movement while the phase machine prevents conflicting greens.",
+  },
+  "ew-heavy": {
+    title: "East/West heavy demand",
+    description: "Shows that the same adaptive logic works when the heavier flow is on the East/West road instead of North/South.",
+  },
+  "ns-burst": {
+    title: "Temporary demand burst",
+    description: "Shows a changing-demand case where the queue grows during a burst and the controller responds without changing safety rules.",
+  },
+  "alternating-peak": {
+    title: "Alternating peak demand",
+    description: "Shows a demand shift over time, useful for explaining why fixed-time control struggles with changing traffic patterns.",
+  },
+};
 
 const state = {
   running: false,
@@ -13,7 +77,11 @@ const state = {
 
 const elements = {
   runButton: document.querySelector("#run-button"),
+  stopButton: document.querySelector("#stop-button"),
+  resetButton: document.querySelector("#reset-button"),
   benchmarkButton: document.querySelector("#benchmark-button"),
+  compareButton: document.querySelector("#compare-button"),
+  presetButtons: document.querySelectorAll(".preset-button"),
   status: document.querySelector("#connection-status"),
   controller: document.querySelector("#controller"),
   scenario: document.querySelector("#scenario"),
@@ -38,6 +106,8 @@ const elements = {
   benchmarkQueueChart: document.querySelector("#benchmark-queue-chart"),
   activeLayer: document.querySelector("#active-layer"),
   vehicleLayer: document.querySelector("#vehicle-layer"),
+  demoTitle: document.querySelector("#demo-title"),
+  demoDescription: document.querySelector("#demo-description"),
 };
 
 function setStatus(text) {
@@ -46,12 +116,15 @@ function setStatus(text) {
 
 function setBenchmarkRunning(running) {
   elements.benchmarkButton.disabled = running;
+  elements.compareButton.disabled = running;
   elements.benchmarkButton.textContent = running ? "Benchmarking" : "Benchmark";
+  elements.compareButton.textContent = running ? "Comparing" : "Compare Selected";
 }
 
 function setRunning(running) {
   state.running = running;
   elements.runButton.disabled = running;
+  elements.stopButton.disabled = !running;
   elements.runButton.textContent = running ? "Running" : "Run";
 }
 
@@ -305,6 +378,17 @@ function applyStep(message) {
   renderVehicles(message.queues, message.signals);
 }
 
+function updateDemoNote() {
+  const note = demoNotes[elements.scenario.value] ?? demoNotes["ns-heavy"];
+  const controller = elements.controller.value === "adaptive" ? "Adaptive" : "Fixed-time";
+  const fault =
+    elements.faultProfile.value === "none"
+      ? ""
+      : ` Fault profile: ${elements.faultProfile.value.replaceAll("-", " ")}.`;
+  elements.demoTitle.textContent = `${controller}: ${note.title}`;
+  elements.demoDescription.textContent = `${note.description}${fault}`;
+}
+
 function applySummary(summary) {
   elements.completed.textContent = summary.completed;
   elements.meanWait.textContent = `${summary.mean_wait_s.toFixed(1)}s`;
@@ -323,9 +407,17 @@ function resetRunView() {
   elements.phase.textContent = "all_red_to_ns";
   elements.phaseTime.textContent = "0.0s";
   elements.reason.textContent = "startup";
+  for (const approach of approaches) {
+    const meter = document.querySelector(`#queue-${approach}`);
+    const label = document.querySelector(`#queue-${approach}-value`);
+    meter.max = 80;
+    meter.value = 0;
+    label.textContent = "0";
+  }
   drawHistory();
   updateDetectorDemand({ north: 0, east: 0, south: 0, west: 0 });
   renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
+  updateDemoNote();
 }
 
 async function loadRuns() {
@@ -543,8 +635,16 @@ function drawGroupedChart(svg, aggregates, options) {
 }
 
 async function runBenchmark() {
+  await runBenchmarkForScenarios(benchmarkScenarios, "Running");
+}
+
+async function runSelectedComparison() {
+  await runBenchmarkForScenarios([elements.scenario.value], "Comparing selected scenario");
+}
+
+async function runBenchmarkForScenarios(scenarios, runningLabel) {
   setBenchmarkRunning(true);
-  elements.benchmarkStatus.textContent = "Running";
+  elements.benchmarkStatus.textContent = runningLabel;
   elements.benchmarkBody.innerHTML = "";
   clearAggregateCharts();
   const seeds = benchmarkSeeds();
@@ -553,7 +653,7 @@ async function runBenchmark() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        scenarios: benchmarkScenarios,
+        scenarios,
         seeds,
         duration_s: Number(elements.duration.value),
         step_s: Number(elements.step.value),
@@ -619,9 +719,50 @@ function runSimulation() {
   });
 }
 
+function stopSimulation() {
+  if (state.socket) {
+    state.socket.close();
+    state.socket = null;
+  }
+  setStatus("Stopped");
+  setRunning(false);
+}
+
+function resetDashboard() {
+  stopSimulation();
+  setStatus("Idle");
+  resetRunView();
+}
+
+function applyPreset(name) {
+  const preset = presetConfig[name];
+  if (!preset) {
+    return;
+  }
+  stopSimulation();
+  elements.controller.value = preset.controller;
+  elements.scenario.value = preset.scenario;
+  elements.faultProfile.value = preset.faultProfile;
+  elements.duration.value = preset.duration;
+  elements.step.value = preset.step;
+  elements.seed.value = preset.seed;
+  resetRunView();
+  runSimulation();
+}
+
 elements.runButton.addEventListener("click", runSimulation);
+elements.stopButton.addEventListener("click", stopSimulation);
+elements.resetButton.addEventListener("click", resetDashboard);
 elements.benchmarkButton.addEventListener("click", runBenchmark);
+elements.compareButton.addEventListener("click", runSelectedComparison);
+elements.controller.addEventListener("change", updateDemoNote);
+elements.scenario.addEventListener("change", updateDemoNote);
+elements.faultProfile.addEventListener("change", updateDemoNote);
+for (const button of elements.presetButtons) {
+  button.addEventListener("click", () => applyPreset(button.dataset.preset));
+}
 activateSignals({ north: "red", east: "red", south: "red", west: "red" });
 renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
 clearAggregateCharts();
+updateDemoNote();
 loadRuns();

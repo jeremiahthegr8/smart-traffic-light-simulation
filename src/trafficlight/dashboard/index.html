@@ -13,7 +13,10 @@
         <p id="connection-status">Idle</p>
       </div>
       <button id="run-button" type="button">Run</button>
+      <button id="stop-button" type="button" disabled>Stop</button>
+      <button id="reset-button" type="button">Reset</button>
       <button id="benchmark-button" type="button">Benchmark</button>
+      <button id="compare-button" type="button">Compare Selected</button>
     </header>
 
     <main class="layout">
@@ -60,6 +63,15 @@
           Benchmark seeds
           <input id="benchmark-seeds" type="number" min="1" max="50" step="1" value="5" />
         </label>
+
+        <div class="demo-actions" aria-label="Quick demonstration presets">
+          <h2>Demo presets</h2>
+          <button type="button" class="preset-button" data-preset="adaptive-ns">NS-heavy adaptive</button>
+          <button type="button" class="preset-button" data-preset="adaptive-ew">EW-heavy adaptive</button>
+          <button type="button" class="preset-button" data-preset="burst">NS burst</button>
+          <button type="button" class="preset-button" data-preset="fixed">Fixed baseline</button>
+          <button type="button" class="preset-button" data-preset="fault">Detector fault</button>
+        </div>
       </section>
 
       <section class="intersection-panel" aria-label="Intersection state">
@@ -118,6 +130,12 @@
       </section>
 
       <section class="metrics-panel" aria-label="Metrics">
+        <div class="demo-note" aria-label="Current demonstration focus">
+          <span>What this proves</span>
+          <strong id="demo-title">Adaptive demand response</strong>
+          <p id="demo-description">Run an adaptive NS-heavy scenario to show demand-responsive green timing, visible queues, and zero safety violations.</p>
+        </div>
+
         <div class="metric-grid">
           <article>
             <span>Completed</span>
