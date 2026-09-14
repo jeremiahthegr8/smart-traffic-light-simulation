@@ -637,8 +637,8 @@ async function loadRuns() {
     row.innerHTML = `
       <td>${run.id}</td>
       <td>${run.scenario}</td>
-      <td>${run.controller}</td>
-      <td>${run.status}</td>
+      <td><span class="controller-pill ${run.controller}">${run.controller}</span></td>
+      <td><span class="status-pill ${run.status}">${run.status}</span></td>
     `;
     elements.runsBody.append(row);
   }
@@ -727,11 +727,49 @@ function clearAggregateCharts() {
 
 function drawChartPlaceholder(svg, text) {
   svg.innerHTML = "";
+  const panel = svgElement("rect", {
+    x: 20,
+    y: 18,
+    width: 720,
+    height: 212,
+    rx: 14,
+    class: "chart-empty-panel",
+  });
+  svg.append(panel);
+
+  const bars = [
+    { x: 306, y: 128, height: 42, className: "chart-empty-fixed" },
+    { x: 350, y: 98, height: 72, className: "chart-empty-adaptive" },
+    { x: 398, y: 144, height: 26, className: "chart-empty-muted" },
+  ];
+  for (const bar of bars) {
+    svg.append(
+      svgElement("rect", {
+        x: bar.x,
+        y: bar.y,
+        width: 28,
+        height: bar.height,
+        rx: 5,
+        class: bar.className,
+      })
+    );
+  }
+  svg.append(svgElement("line", { x1: 280, y1: 174, x2: 454, y2: 174, class: "chart-empty-axis" }));
+
+  const title = svgElement("text", {
+    x: 380,
+    y: 82,
+    "text-anchor": "middle",
+    class: "chart-empty-title",
+  });
+  title.textContent = "No benchmark data yet";
+  svg.append(title);
+
   const label = svgElement("text", {
     x: 380,
-    y: 136,
+    y: 204,
     "text-anchor": "middle",
-    class: "chart-label",
+    class: "chart-empty-label",
   });
   label.textContent = text;
   svg.append(label);
