@@ -529,7 +529,7 @@ function applySummary(summary) {
 }
 
 function applyEvidenceFromBenchmark(rows) {
-  const selected = elements.scenario.value;
+  const selected = elements.customEnabled.checked ? "custom-dashboard" : elements.scenario.value;
   const adaptive = rows.find((row) => row.scenario === selected && row.controller === "adaptive");
   if (!adaptive || adaptive.mean_wait_improvement_pct === null || adaptive.mean_wait_improvement_pct === undefined) {
     elements.evidenceWait.textContent = "No comparison";
@@ -630,6 +630,13 @@ function formatImprovement(value) {
   return `<span class="${cssClass}">${prefix}${value.toFixed(1)}%</span>`;
 }
 
+function improvementPct(baseline, candidate) {
+  if (!baseline) {
+    return null;
+  }
+  return ((baseline - candidate) / baseline) * 100;
+}
+
 function benchmarkSeeds() {
   const parsedBaseSeed = Number(elements.seed.value);
   const baseSeed = Number.isFinite(parsedBaseSeed) ? parsedBaseSeed : 1;
@@ -690,6 +697,11 @@ function drawGroupedChart(svg, aggregates, options) {
   const scenarios = benchmarkScenarios.filter((scenario) =>
     ["fixed", "adaptive"].some((controller) => byKey.has(`${scenario}:${controller}`))
   );
+  for (const row of aggregates) {
+    if (!scenarios.includes(row.scenario)) {
+      scenarios.push(row.scenario);
+    }
+  }
   const maxValue = Math.max(
     1,
     ...aggregates.map((row) => Number(row[options.metric] || 0) + Number(row[options.ciMetric] || 0))
@@ -815,12 +827,138 @@ async function runBenchmark() {
 
 async function runSelectedComparison() {
   if (elements.customEnabled.checked) {
-    elements.benchmarkStatus.textContent = "Custom scenarios use live simulation only";
-    elements.evidenceWait.textContent = "Built-in only";
-    elements.evidenceWait.className = "";
+    await runCustomComparison();
     return;
   }
   await runBenchmarkForScenarios([elements.scenario.value], "Comparing selected scenario");
+}
+
+function appendBenchmarkRow(row) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${row.scenario}</td>
+    <td>${row.seed}</td>
+    <td>${row.controller}</td>
+    <td>${row.completed}</td>
+    <td>${formatNumber(row.mean_wait_s)}s</td>
+    <td>${row.max_queue}</td>
+    <td>${formatImprovement(row.mean_wait_improvement_pct)}</td>
+    <td>${row.conflicting_green_violations}</td>
+  `;
+  elements.benchmarkBody.append(tr);
+}
+
+function customSimulationBody(controller) {
+  return {
+    controller,
+    scenario: "custom-dashboard",
+    fault_profile: elements.faultProfile.value,
+    duration_s: Number(elements.duration.value),
+    step_s: Number(elements.step.value),
+    seed: Number(elements.seed.value),
+    persist: false,
+    custom_arrivals_per_minute: customArrivals(),
+  };
+}
+
+async function fetchSimulationSummary(controller) {
+  const response = await fetch("/api/simulations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(customSimulationBody(controller)),
+  });
+  if (!response.ok) {
+    throw new Error(`Simulation failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+function customComparisonPayload(fixed, adaptive) {
+  const waitImprovement = improvementPct(fixed.mean_wait_s, adaptive.mean_wait_s);
+  const queueImprovement = improvementPct(fixed.max_queue, adaptive.max_queue);
+  const completedDelta = adaptive.completed - fixed.completed;
+  const seed = Number(elements.seed.value);
+  const rows = [
+    {
+      scenario: "custom-dashboard",
+      seed,
+      controller: "fixed",
+      arrivals: fixed.arrivals,
+      completed: fixed.completed,
+      throughput_veh_per_min: fixed.throughput_veh_per_min,
+      mean_wait_s: fixed.mean_wait_s,
+      max_queue: fixed.max_queue,
+      conflicting_green_violations: fixed.conflicting_green_violations,
+      completed_delta_vs_fixed: null,
+      mean_wait_improvement_pct: null,
+      max_queue_improvement_pct: null,
+    },
+    {
+      scenario: "custom-dashboard",
+      seed,
+      controller: "adaptive",
+      arrivals: adaptive.arrivals,
+      completed: adaptive.completed,
+      throughput_veh_per_min: adaptive.throughput_veh_per_min,
+      mean_wait_s: adaptive.mean_wait_s,
+      max_queue: adaptive.max_queue,
+      conflicting_green_violations: adaptive.conflicting_green_violations,
+      completed_delta_vs_fixed: completedDelta,
+      mean_wait_improvement_pct: waitImprovement,
+      max_queue_improvement_pct: queueImprovement,
+    },
+  ];
+  const aggregates = rows.map((row) => ({
+    scenario: row.scenario,
+    controller: row.controller,
+    runs: 1,
+    mean_completed: row.completed,
+    std_completed: 0,
+    ci95_completed: 0,
+    mean_wait_s: row.mean_wait_s,
+    std_wait_s: 0,
+    ci95_wait_s: 0,
+    mean_max_queue: row.max_queue,
+    std_max_queue: 0,
+    ci95_max_queue: 0,
+    total_conflicting_green_violations: row.conflicting_green_violations,
+    mean_completed_delta_vs_fixed: row.completed_delta_vs_fixed,
+    std_completed_delta_vs_fixed: 0,
+    ci95_completed_delta_vs_fixed: 0,
+    mean_wait_improvement_pct: row.mean_wait_improvement_pct,
+    std_wait_improvement_pct: 0,
+    ci95_wait_improvement_pct: 0,
+    mean_max_queue_improvement_pct: row.max_queue_improvement_pct,
+    std_max_queue_improvement_pct: 0,
+    ci95_max_queue_improvement_pct: 0,
+  }));
+  return { rows, aggregates };
+}
+
+async function runCustomComparison() {
+  setBenchmarkRunning(true);
+  elements.benchmarkStatus.textContent = "Comparing custom scenario";
+  elements.benchmarkBody.innerHTML = "";
+  clearAggregateCharts();
+  try {
+    const [fixed, adaptive] = await Promise.all([
+      fetchSimulationSummary("fixed"),
+      fetchSimulationSummary("adaptive"),
+    ]);
+    const payload = customComparisonPayload(fixed, adaptive);
+    state.lastBenchmarkRows = payload.rows;
+    state.lastBenchmarkAggregates = payload.aggregates;
+    for (const row of payload.rows) {
+      appendBenchmarkRow(row);
+    }
+    renderAggregateCharts(payload.aggregates);
+    applyEvidenceFromBenchmark(payload.rows);
+    elements.benchmarkStatus.textContent = "Custom fixed/adaptive comparison";
+  } catch (error) {
+    elements.benchmarkStatus.textContent = "Failed";
+  } finally {
+    setBenchmarkRunning(false);
+  }
 }
 
 async function runBenchmarkForScenarios(scenarios, runningLabel) {
@@ -847,18 +985,7 @@ async function runBenchmarkForScenarios(scenarios, runningLabel) {
     state.lastBenchmarkRows = payload.rows;
     state.lastBenchmarkAggregates = payload.aggregates;
     for (const row of payload.rows) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.scenario}</td>
-        <td>${row.seed}</td>
-        <td>${row.controller}</td>
-        <td>${row.completed}</td>
-        <td>${formatNumber(row.mean_wait_s)}s</td>
-        <td>${row.max_queue}</td>
-        <td>${formatImprovement(row.mean_wait_improvement_pct)}</td>
-        <td>${row.conflicting_green_violations}</td>
-      `;
-      elements.benchmarkBody.append(tr);
+      appendBenchmarkRow(row);
     }
     renderAggregateCharts(payload.aggregates);
     applyEvidenceFromBenchmark(payload.rows);
@@ -966,8 +1093,9 @@ function applyPreset(name) {
 }
 
 function selectedAdaptiveAggregate() {
+  const selected = elements.customEnabled.checked ? "custom-dashboard" : elements.scenario.value;
   return state.lastBenchmarkAggregates.find(
-    (row) => row.scenario === elements.scenario.value && row.controller === "adaptive"
+    (row) => row.scenario === selected && row.controller === "adaptive"
   );
 }
 
@@ -1011,10 +1139,14 @@ function evidenceSummaryText() {
   const aggregate = selectedAdaptiveAggregate();
   lines.push("", "Selected scenario benchmark:");
   if (aggregate && aggregate.mean_wait_improvement_pct !== null && aggregate.mean_wait_improvement_pct !== undefined) {
+    const queueImprovement =
+      aggregate.mean_max_queue_improvement_pct === null || aggregate.mean_max_queue_improvement_pct === undefined
+        ? "-"
+        : `${aggregate.mean_max_queue_improvement_pct.toFixed(2)}%`;
     lines.push(
       `Adaptive mean wait improvement: ${aggregate.mean_wait_improvement_pct.toFixed(2)}%`,
       `Adaptive completed delta vs fixed: ${aggregate.mean_completed_delta_vs_fixed.toFixed(2)}`,
-      `Adaptive max queue improvement: ${aggregate.mean_max_queue_improvement_pct.toFixed(2)}%`,
+      `Adaptive max queue improvement: ${queueImprovement}`,
       `Aggregate safety violations: ${aggregate.total_conflicting_green_violations}`,
       `Benchmark runs: ${aggregate.runs}`
     );
