@@ -8,17 +8,22 @@
   </head>
   <body>
     <header class="topbar">
-      <div>
-        <h1>Smart Traffic-Light Dashboard</h1>
-        <p id="connection-status">Idle</p>
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">TL</div>
+        <div>
+          <h1>Smart Traffic-Light Dashboard</h1>
+          <p id="connection-status">Idle</p>
+        </div>
       </div>
-      <button id="run-button" type="button">Run</button>
-      <button id="stop-button" type="button" disabled>Stop</button>
-      <button id="reset-button" type="button">Reset</button>
-      <button id="benchmark-button" type="button">Benchmark</button>
-      <button id="compare-button" type="button">Compare Selected</button>
-      <button id="tour-button" type="button">Run Demo Tour</button>
-      <button id="copy-evidence-button" type="button">Copy Evidence</button>
+      <div class="topbar-actions" aria-label="Dashboard actions">
+        <button id="run-button" type="button">Run</button>
+        <button id="stop-button" type="button" disabled>Stop</button>
+        <button id="reset-button" type="button">Reset</button>
+        <button id="benchmark-button" type="button">Benchmark</button>
+        <button id="compare-button" type="button">Compare Selected</button>
+        <button id="tour-button" type="button">Run Demo Tour</button>
+        <button id="copy-evidence-button" type="button">Copy Evidence</button>
+      </div>
     </header>
 
     <main class="layout">
