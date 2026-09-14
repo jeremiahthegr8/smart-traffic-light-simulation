@@ -158,6 +158,7 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
         seed: int = 42,
         persist: bool = True,
         fault_profile: str = "none",
+        playback_delay_ms: int = Query(default=0, ge=0, le=10000),
         custom_north: float | None = Query(default=None, ge=0, le=120),
         custom_east: float | None = Query(default=None, ge=0, le=120),
         custom_south: float | None = Query(default=None, ge=0, le=120),
@@ -204,6 +205,8 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
                 await websocket.send_json(message)
                 if message["type"] == "summary":
                     break
+                if message["type"] == "step" and playback_delay_ms > 0:
+                    await asyncio.sleep(playback_delay_ms / 1000)
             await task
         except WebSocketDisconnect:
             task.cancel()

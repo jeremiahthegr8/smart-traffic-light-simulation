@@ -4,6 +4,45 @@ const benchmarkScenarios = ["balanced", "ns-heavy", "ew-heavy", "ns-burst", "alt
 const history = [];
 const maxHistory = 80;
 const svgNamespace = "http://www.w3.org/2000/svg";
+const visualVehicleLimit = 12;
+const vehicleSlots = {
+  north: { startX: 284, startY: 190, laneDx: 26, laneDy: 0, rowDx: 0, rowDy: -24 },
+  south: { startX: 342, startY: 426, laneDx: -26, laneDy: 0, rowDx: 0, rowDy: 24 },
+  east: { startX: 428, startY: 284, laneDx: 0, laneDy: 26, rowDx: 28, rowDy: 0 },
+  west: { startX: 188, startY: 342, laneDx: 0, laneDy: -26, rowDx: -28, rowDy: 0 },
+};
+const entryPoints = {
+  north: { x: 284, y: -36 },
+  south: { x: 342, y: 650 },
+  east: { x: 650, y: 284 },
+  west: { x: -36, y: 342 },
+};
+const exitPoints = {
+  north: { x: 286, y: 650 },
+  south: { x: 340, y: -36 },
+  east: { x: -44, y: 286 },
+  west: { x: 650, y: 340 },
+};
+const departurePoints = {
+  north: { x: 286, y: 224 },
+  south: { x: 340, y: 392 },
+  east: { x: 392, y: 286 },
+  west: { x: 224, y: 340 },
+};
+const timingDefaults = {
+  fixedGreen: 20,
+  amber: 3,
+  allRed: 2,
+};
+const phaseSequence = [
+  "all_red_to_ns",
+  "ns_green",
+  "ns_amber",
+  "all_red_to_ew",
+  "ew_green",
+  "ew_amber",
+];
+const overrideReasons = new Set(["no_active_demand", "maximum_green"]);
 const presetConfig = {
   "adaptive-ns": {
     controller: "adaptive",
@@ -78,6 +117,17 @@ const state = {
   lastSummary: null,
   lastBenchmarkRows: [],
   lastBenchmarkAggregates: [],
+  lastCompleted: 0,
+  lastPhase: null,
+  lastTargetGreen: null,
+  visualQueues: {
+    north: [],
+    east: [],
+    south: [],
+    west: [],
+  },
+  overflowLabels: {},
+  vehicleSerial: 0,
 };
 
 const elements = {
@@ -100,6 +150,7 @@ const elements = {
   faultProfile: document.querySelector("#fault-profile"),
   duration: document.querySelector("#duration"),
   step: document.querySelector("#step"),
+  playbackSpeed: document.querySelector("#playback-speed"),
   seed: document.querySelector("#seed"),
   benchmarkSeeds: document.querySelector("#benchmark-seeds"),
   phase: document.querySelector("#phase"),
@@ -130,6 +181,19 @@ const elements = {
   evidenceFault: document.querySelector("#evidence-fault"),
   faultDescription: document.querySelector("#fault-description"),
   examinerSummary: document.querySelector("#examiner-summary"),
+  countdownEvent: document.querySelector("#countdown-event"),
+  countdowns: Object.fromEntries(
+    approaches.map((approach) => [
+      approach,
+      {
+        card: document.querySelector(`#${approach}-countdown-card`),
+        remaining: document.querySelector(`#${approach}-countdown-remaining`),
+        state: document.querySelector(`#${approach}-countdown-state`),
+        next: document.querySelector(`#${approach}-countdown-next`),
+        mode: document.querySelector(`#${approach}-countdown-mode`),
+      },
+    ])
+  ),
 };
 
 function setStatus(text) {
@@ -152,6 +216,20 @@ function setRunning(running) {
   elements.runButton.textContent = running ? "Running" : "Run";
 }
 
+function playbackDelayMs() {
+  const stepSeconds = Math.max(0.1, Number(elements.step.value) || 1);
+  const speed = Number(elements.playbackSpeed.value);
+  if (!Number.isFinite(speed) || speed <= 0) {
+    return 0;
+  }
+  return Math.min(10000, Math.round((stepSeconds / speed) * 1000));
+}
+
+function playbackLabel() {
+  const option = elements.playbackSpeed.selectedOptions[0];
+  return option ? option.textContent : "Custom";
+}
+
 function params(persist = "true") {
   const values = new URLSearchParams({
     controller: elements.controller.value,
@@ -159,6 +237,7 @@ function params(persist = "true") {
     fault_profile: elements.faultProfile.value,
     duration_s: elements.duration.value,
     step_s: elements.step.value,
+    playback_delay_ms: playbackDelayMs(),
     seed: elements.seed.value,
     persist,
   });
@@ -177,6 +256,10 @@ function activateSignals(signals) {
     for (const colour of colours) {
       const lamp = document.querySelector(`#${approach}-${colour}`);
       lamp.classList.toggle("is-active", signals[approach] === colour);
+    }
+    const guide = document.querySelector(`#${approach}-signal-guide`);
+    if (guide) {
+      guide.classList.toggle("is-active", signals[approach] === "green");
     }
   }
   renderActiveLanes(signals);
@@ -247,12 +330,86 @@ function carDimensions(direction) {
   };
 }
 
-function addVehicle(x, y, direction, mode) {
+function queueSlot(approach, index) {
+  const config = vehicleSlots[approach];
+  const lane = index % 2;
+  const row = Math.floor(index / 2);
+  return {
+    x: config.startX + lane * config.laneDx + row * config.rowDx,
+    y: config.startY + lane * config.laneDy + row * config.rowDy,
+  };
+}
+
+function offsetPoint(point, approach, index) {
+  const laneOffset = index % 2 === 0 ? 0 : 28;
+  if (approach === "north") {
+    return { x: point.x + laneOffset, y: point.y };
+  }
+  if (approach === "south") {
+    return { x: point.x - laneOffset, y: point.y };
+  }
+  if (approach === "east") {
+    return { x: point.x, y: point.y + laneOffset };
+  }
+  return { x: point.x, y: point.y - laneOffset };
+}
+
+function setVehiclePosition(vehicle, point) {
+  vehicle.dataset.x = point.x;
+  vehicle.dataset.y = point.y;
+  vehicle.setAttribute("transform", `translate(${point.x} ${point.y})`);
+}
+
+function vehiclePosition(vehicle) {
+  return {
+    x: Number(vehicle.dataset.x || 0),
+    y: Number(vehicle.dataset.y || 0),
+  };
+}
+
+function animateVehicleTo(vehicle, point, options = {}) {
+  const from = vehiclePosition(vehicle);
+  const duration = options.duration ?? 0.7;
+  const delaySeconds = options.delay ?? 0;
+  vehicle.querySelectorAll(".motion").forEach((animation) => animation.remove());
+  vehicle.dataset.x = point.x;
+  vehicle.dataset.y = point.y;
+
+  window.setTimeout(() => {
+    if (!vehicle.isConnected) {
+      return;
+    }
+    const animation = svgElement("animateTransform", {
+      attributeName: "transform",
+      type: "translate",
+      from: `${from.x} ${from.y}`,
+      to: `${point.x} ${point.y}`,
+      dur: `${duration}s`,
+      fill: "freeze",
+      class: "motion",
+    });
+    vehicle.append(animation);
+    animation.beginElement();
+    window.setTimeout(() => {
+      if (!vehicle.isConnected) {
+        return;
+      }
+      setVehiclePosition(vehicle, point);
+      animation.remove();
+      if (options.remove) {
+        vehicle.remove();
+      }
+    }, duration * 1000 + 80);
+  }, delaySeconds * 1000);
+}
+
+function addVehicle(point, direction, mode) {
   const { width, height } = carDimensions(direction);
   const vehicle = svgElement("g", {
-    transform: `translate(${x} ${y})`,
-    class: `vehicle ${mode}`,
+    class: `vehicle ${mode} vehicle-${direction}`,
+    "data-id": `vehicle-${state.vehicleSerial}`,
   });
+  state.vehicleSerial += 1;
   vehicle.append(
     svgElement("rect", {
       x: 0,
@@ -275,12 +432,47 @@ function addVehicle(x, y, direction, mode) {
   );
   vehicle.append(svgElement("circle", { cx: width * 0.18, cy: height + 1, r: 2, class: "wheel" }));
   vehicle.append(svgElement("circle", { cx: width * 0.82, cy: height + 1, r: 2, class: "wheel" }));
+  setVehiclePosition(vehicle, point);
   elements.vehicleLayer.append(vehicle);
   return vehicle;
 }
 
-function addQueuedVehicle(x, y, direction) {
-  addVehicle(x, y, direction, "queued");
+function addQueuedVehicle(approach, slotIndex) {
+  const entry = offsetPoint(entryPoints[approach], approach, slotIndex);
+  const slot = queueSlot(approach, slotIndex);
+  const vehicle = addVehicle(entry, approach, "queued arriving");
+  state.visualQueues[approach].push(vehicle);
+  animateVehicleTo(vehicle, slot, { duration: 0.85, delay: Math.min(0.45, slotIndex * 0.05) });
+  window.setTimeout(() => vehicle.classList.remove("arriving"), 950);
+}
+
+function updateOverflowLabel(approach, overflow) {
+  const existing = state.overflowLabels[approach];
+  if (overflow <= 0) {
+    if (existing) {
+      existing.remove();
+      delete state.overflowLabels[approach];
+    }
+    return;
+  }
+
+  const position = {
+    north: { x: 320, y: 56 },
+    south: { x: 320, y: 584 },
+    east: { x: 570, y: 320 },
+    west: { x: 70, y: 320 },
+  }[approach];
+  const label = existing || svgElement("text", {
+    x: position.x,
+    y: position.y,
+    "text-anchor": "middle",
+    class: "queue-overflow",
+  });
+  label.textContent = `+${overflow}`;
+  if (!existing) {
+    state.overflowLabels[approach] = label;
+    elements.vehicleLayer.append(label);
+  }
 }
 
 function addOverflowLabel(text, x, y) {
@@ -294,42 +486,39 @@ function addOverflowLabel(text, x, y) {
   elements.vehicleLayer.append(label);
 }
 
-function addFlowVehicle(direction, laneOffset, delay) {
-  const x = {
-    north: 286 + laneOffset,
-    south: 340 - laneOffset,
-    east: 392,
-    west: 224,
-  }[direction];
-  const y = {
-    north: 224,
-    south: 392,
-    east: 286 + laneOffset,
-    west: 340 - laneOffset,
-  }[direction];
-  const vehicle = addVehicle(x, y, direction, "flowing");
+function departVehicle(approach, delaySeconds = 0) {
+  const vehicle = state.visualQueues[approach].shift();
+  const start = offsetPoint(departurePoints[approach], approach, delaySeconds > 0 ? 1 : 0);
+  const movingVehicle = vehicle || addVehicle(start, approach, "queued");
+  if (!vehicle) {
+    setVehiclePosition(movingVehicle, start);
+  }
+  movingVehicle.classList.remove("queued", "arriving");
+  movingVehicle.classList.add("flowing");
+  animateVehicleTo(
+    movingVehicle,
+    offsetPoint(exitPoints[approach], approach, delaySeconds > 0 ? 1 : 0),
+    { duration: 1.05, delay: delaySeconds, remove: true }
+  );
+}
 
-  const animate = svgElement("animateTransform", {
-    attributeName: "transform",
-    type: "translate",
-    from: {
-      north: `${x} 224`,
-      south: `${x} 392`,
-      east: `392 ${y}`,
-      west: `224 ${y}`,
-    }[direction],
-    to: {
-      north: `${x} 404`,
-      south: `${x} 224`,
-      east: `224 ${y}`,
-      west: `392 ${y}`,
-    }[direction],
-    dur: "0.9s",
-    begin: `${delay}s`,
-    repeatCount: "indefinite",
-  });
-  vehicle.append(animate);
-  elements.vehicleLayer.append(vehicle);
+function addThroughVehicle(approach, index) {
+  const start = offsetPoint(departurePoints[approach], approach, index);
+  const vehicle = addVehicle(start, approach, "flowing");
+  animateVehicleTo(
+    vehicle,
+    offsetPoint(exitPoints[approach], approach, index),
+    { duration: 1.05, delay: index * 0.18, remove: true }
+  );
+}
+
+function clearVehicles() {
+  elements.vehicleLayer.innerHTML = "";
+  for (const approach of approaches) {
+    state.visualQueues[approach] = [];
+  }
+  state.overflowLabels = {};
+  state.lastCompleted = 0;
 }
 
 function renderActiveLanes(signals) {
@@ -348,54 +537,35 @@ function renderActiveLanes(signals) {
   }
 }
 
-function renderVehicles(queues, signals) {
-  elements.vehicleLayer.innerHTML = "";
-  const visibleLimit = 10;
-  const configs = {
-    north: { startX: 284, startY: 190, laneDx: 26, laneDy: 0, rowDx: 0, rowDy: -22 },
-    south: { startX: 342, startY: 426, laneDx: -26, laneDy: 0, rowDx: 0, rowDy: 22 },
-    east: { startX: 428, startY: 284, laneDx: 0, laneDy: 26, rowDx: 26, rowDy: 0 },
-    west: { startX: 188, startY: 342, laneDx: 0, laneDy: -26, rowDx: -26, rowDy: 0 },
-  };
-
+function renderVehicles(queues, signals, completedVehicles = state.lastCompleted) {
+  let visibleDepartures = 0;
   for (const approach of approaches) {
     const count = queues[approach] ?? 0;
-    const visible = Math.min(count, visibleLimit);
-    const config = configs[approach];
-    for (let index = 0; index < visible; index += 1) {
-      const lane = index % 2;
-      const row = Math.floor(index / 2);
-      addQueuedVehicle(
-        config.startX + lane * config.laneDx + row * config.rowDx,
-        config.startY + lane * config.laneDy + row * config.rowDy,
-        approach
-      );
+    const targetVisible = Math.min(count, visualVehicleLimit);
+    const queue = state.visualQueues[approach];
+
+    while (queue.length > targetVisible) {
+      departVehicle(approach, visibleDepartures * 0.12);
+      visibleDepartures += 1;
     }
-    if (count > visibleLimit) {
-      const overflow = count - visibleLimit;
-      addOverflowLabel(
-        `+${overflow}`,
-        {
-          north: 320,
-          south: 320,
-          east: 540,
-          west: 100,
-        }[approach],
-        {
-          north: 72,
-          south: 548,
-          east: 320,
-          west: 320,
-        }[approach]
-      );
+    while (queue.length < targetVisible) {
+      addQueuedVehicle(approach, queue.length);
     }
-    if (signals[approach] === "green" && count > 0) {
-      addFlowVehicle(approach, 0, 0);
-      if (count > 3) {
-        addFlowVehicle(approach, 28, 0.3);
-      }
+    queue.forEach((vehicle, index) => {
+      animateVehicleTo(vehicle, queueSlot(approach, index), { duration: 0.45 });
+    });
+    updateOverflowLabel(approach, count - targetVisible);
+  }
+
+  const completedDelta = Math.max(0, completedVehicles - state.lastCompleted);
+  if (completedDelta > 0 && visibleDepartures === 0) {
+    const activeApproaches = approaches.filter((approach) => signals[approach] === "green");
+    const sourceApproaches = activeApproaches.length ? activeApproaches : approaches;
+    for (let index = 0; index < Math.min(completedDelta, 4); index += 1) {
+      addThroughVehicle(sourceApproaches[index % sourceApproaches.length], index);
     }
   }
+  state.lastCompleted = completedVehicles;
 }
 
 function drawHistory() {
@@ -417,6 +587,151 @@ function drawHistory() {
   elements.historyLine.setAttribute("points", points);
 }
 
+function roadGroup(approach) {
+  return approach === "north" || approach === "south" ? "ns" : "ew";
+}
+
+function phaseGroup(phase) {
+  if (phase.startsWith("ns_") || phase === "all_red_to_ns") {
+    return "ns";
+  }
+  return "ew";
+}
+
+function greenDuration(message) {
+  return Math.max(0, Number(message.target_green_s ?? timingDefaults.fixedGreen));
+}
+
+function phaseDuration(message) {
+  if (message.phase.endsWith("_green")) {
+    return greenDuration(message);
+  }
+  if (message.phase.endsWith("_amber")) {
+    return timingDefaults.amber;
+  }
+  return timingDefaults.allRed;
+}
+
+function phaseRemaining(message) {
+  return Math.max(0, phaseDuration(message) - Number(message.phase_elapsed_s || 0));
+}
+
+function secondsText(value) {
+  return `${Math.max(0, value).toFixed(1)}s`;
+}
+
+function nextGreenIn(approach, message) {
+  const group = roadGroup(approach);
+  const currentGroup = phaseGroup(message.phase);
+  const remaining = phaseRemaining(message);
+  const otherGreen = greenDuration(message);
+
+  if (message.phase === `all_red_to_${group}`) {
+    return remaining;
+  }
+  if (message.phase === `${group}_green`) {
+    return 0;
+  }
+  if (message.phase === `${group}_amber`) {
+    return timingDefaults.allRed + otherGreen + timingDefaults.amber + timingDefaults.allRed;
+  }
+  if (message.phase === `all_red_to_${currentGroup}`) {
+    return remaining + otherGreen + timingDefaults.amber + timingDefaults.allRed;
+  }
+  if (message.phase.endsWith("_green")) {
+    return remaining + timingDefaults.amber + timingDefaults.allRed;
+  }
+  return remaining + timingDefaults.allRed;
+}
+
+function nextSignalText(approach, message, colour) {
+  const remaining = phaseRemaining(message);
+  if (colour === "green") {
+    return `amber in ${secondsText(remaining)}`;
+  }
+  if (colour === "amber") {
+    return `red in ${secondsText(remaining)}`;
+  }
+  return `green in ${secondsText(nextGreenIn(approach, message))}`;
+}
+
+function countdownModeText(message, colour) {
+  if (overrideReasons.has(message.reason)) {
+    return `adaptive reset: ${message.reason.replaceAll("_", " ")}`;
+  }
+  if (elements.controller.value === "adaptive" && colour === "green" && message.target_green_s !== null) {
+    return `adaptive target ${secondsText(message.target_green_s)}`;
+  }
+  if (colour === "green") {
+    return `fixed target ${secondsText(timingDefaults.fixedGreen)}`;
+  }
+  if (colour === "amber") {
+    return `amber clearance ${secondsText(timingDefaults.amber)}`;
+  }
+  return `red clearance / waiting`;
+}
+
+function updateCountdownEvent(message) {
+  const phaseChanged = state.lastPhase !== null && state.lastPhase !== message.phase;
+  const targetChanged =
+    message.phase.endsWith("_green") &&
+    state.lastTargetGreen !== null &&
+    message.target_green_s !== null &&
+    Math.abs(Number(message.target_green_s) - Number(state.lastTargetGreen)) >= 0.5;
+
+  elements.countdownEvent.classList.remove("is-reset", "is-override");
+  if (phaseChanged) {
+    const previous = state.lastPhase.replaceAll("_", " ");
+    const current = message.phase.replaceAll("_", " ");
+    if (overrideReasons.has(message.reason)) {
+      elements.countdownEvent.textContent = `Adaptive override: ${previous} reset to ${current}`;
+      elements.countdownEvent.classList.add("is-override");
+    } else {
+      elements.countdownEvent.textContent = `Timer reset: ${previous} to ${current}`;
+      elements.countdownEvent.classList.add("is-reset");
+    }
+  } else if (targetChanged) {
+    elements.countdownEvent.textContent = `Adaptive target adjusted to ${secondsText(message.target_green_s)}`;
+    elements.countdownEvent.classList.add("is-override");
+  } else if (state.lastPhase === null) {
+    elements.countdownEvent.textContent = "Countdown active";
+    elements.countdownEvent.classList.add("is-reset");
+  }
+
+  state.lastPhase = message.phase;
+  state.lastTargetGreen = message.target_green_s;
+}
+
+function updateSignalCountdowns(message) {
+  updateCountdownEvent(message);
+  for (const approach of approaches) {
+    const colour = message.signals[approach] ?? "red";
+    const countdown = elements.countdowns[approach];
+    const remaining =
+      colour === "red" ? nextGreenIn(approach, message) : phaseRemaining(message);
+    countdown.card.dataset.colour = colour;
+    countdown.remaining.textContent = secondsText(remaining);
+    countdown.state.textContent = colour;
+    countdown.next.textContent = nextSignalText(approach, message, colour);
+    countdown.mode.textContent = countdownModeText(message, colour);
+  }
+}
+
+function resetSignalCountdowns() {
+  state.lastPhase = null;
+  state.lastTargetGreen = null;
+  elements.countdownEvent.textContent = "Waiting for run";
+  elements.countdownEvent.classList.remove("is-reset", "is-override");
+  for (const approach of approaches) {
+    const countdown = elements.countdowns[approach];
+    countdown.card.dataset.colour = "red";
+    countdown.remaining.textContent = "--";
+    countdown.state.textContent = "red";
+    countdown.next.textContent = "green in --";
+    countdown.mode.textContent = "timer idle";
+  }
+}
+
 function applyStep(message) {
   elements.phase.textContent = message.phase;
   elements.phaseTime.textContent = `${message.phase_elapsed_s.toFixed(1)}s`;
@@ -429,7 +744,8 @@ function applyStep(message) {
   updateQueues(message.queues);
   updateDetectorDemand(message.demand);
   updateDetectorMismatch(message.queues, message.demand);
-  renderVehicles(message.queues, message.signals);
+  updateSignalCountdowns(message);
+  renderVehicles(message.queues, message.signals, message.completed_vehicles);
 }
 
 function updateDemoNote() {
@@ -621,6 +937,8 @@ function resetRunView() {
   }
   drawHistory();
   updateDetectorDemand({ north: 0, east: 0, south: 0, west: 0 });
+  resetSignalCountdowns();
+  clearVehicles();
   renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
   updateDemoNote();
 }
@@ -1097,14 +1415,14 @@ function runSimulation(options = {}) {
   }
   resetRunView();
   setRunning(true);
-  setStatus("Connecting");
+  setStatus(`Connecting - ${playbackLabel()}`);
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   const socket = new WebSocket(`${protocol}://${window.location.host}/ws/simulation?${params(options.persist ?? "true")}`);
   state.socket = socket;
   let resolved = false;
 
   return new Promise((resolve, reject) => {
-    socket.addEventListener("open", () => setStatus("Streaming"));
+    socket.addEventListener("open", () => setStatus(`Streaming - ${playbackLabel()}`));
     socket.addEventListener("message", (event) => {
       const message = JSON.parse(event.data);
       if (message.type === "step") {
@@ -1306,6 +1624,8 @@ for (const button of elements.presetButtons) {
   button.addEventListener("click", () => applyPreset(button.dataset.preset));
 }
 activateSignals({ north: "red", east: "red", west: "red", south: "red" });
+resetSignalCountdowns();
+clearVehicles();
 renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
 clearAggregateCharts();
 updateDemoNote();

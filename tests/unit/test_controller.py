@@ -74,3 +74,17 @@ def test_adaptive_target_green_increases_with_active_demand() -> None:
     assert status.signal_state.colour_for(Approach.NORTH) is Colour.GREEN
     assert status.signal_state.colour_for(Approach.EAST) is Colour.RED
 
+
+def test_adaptive_reports_early_transition_reason() -> None:
+    signals = SimulatedSignalDriver()
+    controller = AdaptiveController(
+        signals,
+        TimingConfig(min_green_s=2, fixed_green_s=2, max_green_s=8, amber_s=1, all_red_s=1),
+    )
+
+    controller.tick(1, demand(ns=10, ew=0))
+    controller.tick(1, demand(ns=10, ew=0))
+    status = controller.tick(1, demand(ns=0, ew=10))
+
+    assert status.phase is Phase.NS_AMBER
+    assert status.reason == "no_active_demand"

@@ -9,6 +9,7 @@ Use this folder for the project defence or viva.
 3. `02-final-report-gctu-structure.pdf`
 4. `02-final-report-gctu-structure.docx`
 5. `03-demonstration-script.md`
+6. `10-simulation-run-manual.md`
 
 ## Supporting Files
 
@@ -18,6 +19,7 @@ Use this folder for the project defence or viva.
 - `07-final-details-needed.md`: exact personal/institution details still needing confirmation.
 - `08-defence-qa-cheat-sheet.md`: short answers for likely examiner questions.
 - `09-methodology-implementation.md`: methodology and implementation chapter draft.
+- `10-simulation-run-manual.md`: practical run manual for starting and demonstrating the dashboard.
 - `02-final-report-gctu-structure.md`: editable Markdown source for the report.
 - `screenshots/`: fallback dashboard screenshots.
 - `evidence/`: CSV summaries, SVG charts, and final result summary.
@@ -28,4 +30,4 @@ Use this folder for the project defence or viva.
 .\.venv\Scripts\python.exe -m uvicorn trafficlight.api.app:app --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/`.
+Open `http://127.0.0.1:8000/?v=countdowns-live`.

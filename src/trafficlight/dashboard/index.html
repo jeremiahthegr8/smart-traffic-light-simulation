@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Smart Traffic-Light Dashboard</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=signallab-repositioned-signals" />
   </head>
   <body>
     <header class="topbar">
@@ -75,6 +75,16 @@
           <input id="step" type="number" min="0.1" max="10" step="0.1" value="1" />
         </label>
         <label>
+          Playback speed
+          <select id="playback-speed">
+            <option value="0">Instant results</option>
+            <option value="4">Quick demo - 4x</option>
+            <option value="1" selected>Real time - 1x</option>
+            <option value="0.5">Slow detail - 0.5x</option>
+            <option value="0.25">Very slow - 0.25x</option>
+          </select>
+        </label>
+        <label>
           Seed
           <input id="seed" type="number" value="42" />
         </label>
@@ -108,6 +118,11 @@
         </div>
 
         <svg class="intersection" viewBox="0 0 640 640" role="img" aria-label="Live intersection">
+          <defs>
+            <marker id="signal-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" class="signal-arrow" />
+            </marker>
+          </defs>
           <rect x="0" y="0" width="640" height="640" class="ground" />
           <rect x="260" y="0" width="120" height="640" class="road" />
           <rect x="0" y="260" width="640" height="120" class="road" />
@@ -123,29 +138,52 @@
 
           <g id="vehicle-layer"></g>
 
-          <g class="light-head north-light" transform="translate(400 198)">
+          <g class="light-head north-light" transform="translate(392 122)">
             <rect width="36" height="86" rx="8" />
             <circle id="north-red" cx="18" cy="18" r="9" class="lamp red" />
             <circle id="north-amber" cx="18" cy="43" r="9" class="lamp amber" />
             <circle id="north-green" cx="18" cy="68" r="9" class="lamp green" />
           </g>
-          <g class="light-head south-light" transform="translate(204 356)">
+          <g class="light-head south-light" transform="translate(212 432)">
             <rect width="36" height="86" rx="8" />
             <circle id="south-red" cx="18" cy="18" r="9" class="lamp red" />
             <circle id="south-amber" cx="18" cy="43" r="9" class="lamp amber" />
             <circle id="south-green" cx="18" cy="68" r="9" class="lamp green" />
           </g>
-          <g class="light-head east-light" transform="translate(356 400) rotate(-90)">
+          <g class="light-head east-light" transform="translate(432 390)">
             <rect width="36" height="86" rx="8" />
             <circle id="east-red" cx="18" cy="18" r="9" class="lamp red" />
             <circle id="east-amber" cx="18" cy="43" r="9" class="lamp amber" />
             <circle id="east-green" cx="18" cy="68" r="9" class="lamp green" />
           </g>
-          <g class="light-head west-light" transform="translate(284 204) rotate(90)">
+          <g class="light-head west-light" transform="translate(172 164)">
             <rect width="36" height="86" rx="8" />
             <circle id="west-red" cx="18" cy="18" r="9" class="lamp red" />
             <circle id="west-amber" cx="18" cy="43" r="9" class="lamp amber" />
             <circle id="west-green" cx="18" cy="68" r="9" class="lamp green" />
+          </g>
+
+          <g class="signal-guides" aria-hidden="true">
+            <line x1="410" y1="214" x2="370" y2="220" class="signal-pointer" />
+            <g id="north-signal-guide" class="signal-badge signal-badge-wide" transform="translate(422 102)">
+              <rect x="-34" y="-14" width="68" height="28" rx="4" />
+              <text y="5" text-anchor="middle">N ROAD</text>
+            </g>
+            <line x1="230" y1="426" x2="270" y2="420" class="signal-pointer" />
+            <g id="south-signal-guide" class="signal-badge signal-badge-wide" transform="translate(218 538)">
+              <rect x="-34" y="-14" width="68" height="28" rx="4" />
+              <text y="5" text-anchor="middle">S ROAD</text>
+            </g>
+            <line x1="426" y1="432" x2="420" y2="370" class="signal-pointer" />
+            <g id="east-signal-guide" class="signal-badge signal-badge-wide" transform="translate(500 434)">
+              <rect x="-34" y="-14" width="68" height="28" rx="4" />
+              <text y="5" text-anchor="middle">E ROAD</text>
+            </g>
+            <line x1="214" y1="206" x2="220" y2="270" class="signal-pointer" />
+            <g id="west-signal-guide" class="signal-badge signal-badge-wide" transform="translate(140 206)">
+              <rect x="-34" y="-14" width="68" height="28" rx="4" />
+              <text y="5" text-anchor="middle">W ROAD</text>
+            </g>
           </g>
 
           <text x="320" y="46" text-anchor="middle" class="approach-label">N</text>
@@ -166,6 +204,43 @@
           <div><span>Safety</span><strong id="evidence-safety">Not run</strong></div>
           <div><span>Wait result</span><strong id="evidence-wait">Benchmark needed</strong></div>
           <div><span>Detector fault</span><strong id="evidence-fault">None selected</strong></div>
+        </div>
+
+        <div class="signal-countdown-panel" aria-label="Traffic-light countdowns">
+          <div class="section-heading compact">
+            <h2>Signal Countdowns</h2>
+            <span id="countdown-event">Waiting for run</span>
+          </div>
+          <div class="countdown-grid">
+            <article id="north-countdown-card" class="countdown-card" data-colour="red">
+              <span>N Road</span>
+              <strong id="north-countdown-remaining">--</strong>
+              <em id="north-countdown-state">red</em>
+              <small id="north-countdown-next">green in --</small>
+              <small id="north-countdown-mode">timer idle</small>
+            </article>
+            <article id="east-countdown-card" class="countdown-card" data-colour="red">
+              <span>E Road</span>
+              <strong id="east-countdown-remaining">--</strong>
+              <em id="east-countdown-state">red</em>
+              <small id="east-countdown-next">green in --</small>
+              <small id="east-countdown-mode">timer idle</small>
+            </article>
+            <article id="south-countdown-card" class="countdown-card" data-colour="red">
+              <span>S Road</span>
+              <strong id="south-countdown-remaining">--</strong>
+              <em id="south-countdown-state">red</em>
+              <small id="south-countdown-next">green in --</small>
+              <small id="south-countdown-mode">timer idle</small>
+            </article>
+            <article id="west-countdown-card" class="countdown-card" data-colour="red">
+              <span>W Road</span>
+              <strong id="west-countdown-remaining">--</strong>
+              <em id="west-countdown-state">red</em>
+              <small id="west-countdown-next">green in --</small>
+              <small id="west-countdown-mode">timer idle</small>
+            </article>
+          </div>
         </div>
 
         <div class="fault-card" aria-label="Fault profile details">
@@ -281,6 +356,6 @@
       </section>
     </main>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=signallab-countdowns"></script>
   </body>
 </html>

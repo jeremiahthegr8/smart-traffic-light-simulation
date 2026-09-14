@@ -22,7 +22,12 @@ class BasePhaseController:
 
         self.phase_elapsed_s += dt_s
         if self._should_transition(demand):
-            self._transition(demand)
+            transition_reason = (
+                self.last_reason
+                if self.last_reason not in {"startup", "hold", "minimum_green"}
+                else None
+            )
+            self._transition(demand, transition_reason)
         else:
             self.last_reason = "hold"
 
@@ -51,7 +56,7 @@ class BasePhaseController:
     def _phase_duration(self, demand: DemandSnapshot) -> float:
         raise NotImplementedError
 
-    def _transition(self, demand: DemandSnapshot) -> None:
+    def _transition(self, demand: DemandSnapshot, reason: str | None = None) -> None:
         previous = self.phase
         self.phase = {
             Phase.ALL_RED_TO_NS: Phase.NS_GREEN,
@@ -62,7 +67,7 @@ class BasePhaseController:
             Phase.EW_AMBER: Phase.ALL_RED_TO_NS,
         }[self.phase]
         self.phase_elapsed_s = 0.0
-        self.last_reason = f"{previous.value}_complete"
+        self.last_reason = reason or f"{previous.value}_complete"
         self._set_target_green(demand)
 
     def _set_target_green(self, demand: DemandSnapshot) -> None:
@@ -147,4 +152,3 @@ class AdaptiveController(BasePhaseController):
         span = self.timing.max_green_s - self.timing.min_green_s
         target = self.timing.min_green_s + (pressure * span)
         return min(max(target, self.timing.min_green_s), self.timing.max_green_s)
-

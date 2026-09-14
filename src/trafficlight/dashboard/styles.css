@@ -456,6 +456,40 @@ input[type="checkbox"] {
   opacity: 0.72;
 }
 
+.signal-pointer {
+  stroke: #7c9290;
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  opacity: 0.85;
+  marker-end: url("#signal-arrow");
+}
+
+.signal-arrow {
+  fill: #7c9290;
+}
+
+.signal-badge rect {
+  fill: #0b1114;
+  stroke: #7c9290;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.45));
+}
+
+.signal-badge text {
+  fill: var(--ink);
+  font: 900 11px var(--mono);
+  letter-spacing: 0;
+}
+
+.signal-badge.is-active rect {
+  fill: var(--primary-dim);
+  stroke: var(--primary);
+}
+
+.signal-badge.is-active text {
+  fill: var(--primary);
+}
+
 .active-lane {
   fill: var(--primary);
   opacity: 0.18;
@@ -503,14 +537,21 @@ input[type="checkbox"] {
 .vehicle .body {
   stroke: #07100f;
   stroke-width: 1.5;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.35));
 }
 
 .vehicle.queued .body {
   fill: #d7e4e1;
 }
 
+.vehicle.arriving .body {
+  fill: #9fc4cf;
+}
+
 .vehicle.flowing .body {
   fill: var(--primary);
+  stroke: #d8fffa;
+  stroke-width: 1;
 }
 
 .vehicle .window,
@@ -520,6 +561,11 @@ input[type="checkbox"] {
 
 .vehicle .window {
   opacity: 0.75;
+}
+
+.vehicle.flowing .window {
+  fill: #10201f;
+  opacity: 0.95;
 }
 
 .queue-overflow {
@@ -587,6 +633,86 @@ input[type="checkbox"] {
 
 .presenter-cues li + li {
   margin-top: 5px;
+}
+
+.signal-countdown-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #0b1114;
+}
+
+.section-heading.compact {
+  margin-bottom: 0;
+}
+
+#countdown-event {
+  max-width: 190px;
+  color: var(--muted);
+  text-align: right;
+  font: 800 10px var(--mono);
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+#countdown-event.is-override {
+  color: var(--accent);
+}
+
+#countdown-event.is-reset {
+  color: var(--primary);
+}
+
+.countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.countdown-card {
+  display: grid;
+  gap: 4px;
+  min-height: 106px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-left: 4px solid #6f7d80;
+  border-radius: 4px;
+  background: #10181b;
+}
+
+.countdown-card[data-colour="green"] {
+  border-left-color: #67d39c;
+  background: #10231d;
+}
+
+.countdown-card[data-colour="amber"] {
+  border-left-color: var(--accent);
+  background: #231d10;
+}
+
+.countdown-card[data-colour="red"] {
+  border-left-color: #c24c4b;
+}
+
+.countdown-card > span,
+.countdown-card small {
+  color: var(--muted);
+  font: 800 10px var(--mono);
+  text-transform: uppercase;
+}
+
+.countdown-card strong {
+  color: var(--ink);
+  font: 900 26px var(--mono);
+  line-height: 1;
+}
+
+.countdown-card em {
+  color: var(--ink);
+  font: normal 800 12px var(--mono);
+  text-transform: uppercase;
 }
 
 .metric-grid {
