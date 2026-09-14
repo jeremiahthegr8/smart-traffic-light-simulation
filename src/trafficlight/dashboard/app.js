@@ -73,6 +73,8 @@ const state = {
   running: false,
   maxQueue: 0,
   socket: null,
+  scenarios: {},
+  faultProfiles: {},
 };
 
 const elements = {
@@ -81,6 +83,7 @@ const elements = {
   resetButton: document.querySelector("#reset-button"),
   benchmarkButton: document.querySelector("#benchmark-button"),
   compareButton: document.querySelector("#compare-button"),
+  tourButton: document.querySelector("#tour-button"),
   presetButtons: document.querySelectorAll(".preset-button"),
   status: document.querySelector("#connection-status"),
   controller: document.querySelector("#controller"),
@@ -108,6 +111,13 @@ const elements = {
   vehicleLayer: document.querySelector("#vehicle-layer"),
   demoTitle: document.querySelector("#demo-title"),
   demoDescription: document.querySelector("#demo-description"),
+  scenarioDescription: document.querySelector("#scenario-description"),
+  scenarioRates: document.querySelector("#scenario-rates"),
+  scenarioWindows: document.querySelector("#scenario-windows"),
+  evidenceSafety: document.querySelector("#evidence-safety"),
+  evidenceWait: document.querySelector("#evidence-wait"),
+  evidenceFault: document.querySelector("#evidence-fault"),
+  faultDescription: document.querySelector("#fault-description"),
 };
 
 function setStatus(text) {
@@ -117,6 +127,7 @@ function setStatus(text) {
 function setBenchmarkRunning(running) {
   elements.benchmarkButton.disabled = running;
   elements.compareButton.disabled = running;
+  elements.tourButton.disabled = running;
   elements.benchmarkButton.textContent = running ? "Benchmarking" : "Benchmark";
   elements.compareButton.textContent = running ? "Comparing" : "Compare Selected";
 }
@@ -125,10 +136,11 @@ function setRunning(running) {
   state.running = running;
   elements.runButton.disabled = running;
   elements.stopButton.disabled = !running;
+  elements.tourButton.disabled = running;
   elements.runButton.textContent = running ? "Running" : "Run";
 }
 
-function params() {
+function params(persist = "true") {
   return new URLSearchParams({
     controller: elements.controller.value,
     scenario: elements.scenario.value,
@@ -136,7 +148,7 @@ function params() {
     duration_s: elements.duration.value,
     step_s: elements.step.value,
     seed: elements.seed.value,
-    persist: "true",
+    persist,
   });
 }
 
@@ -387,6 +399,47 @@ function updateDemoNote() {
       : ` Fault profile: ${elements.faultProfile.value.replaceAll("-", " ")}.`;
   elements.demoTitle.textContent = `${controller}: ${note.title}`;
   elements.demoDescription.textContent = `${note.description}${fault}`;
+  updateScenarioDetails();
+  updateFaultDetails();
+}
+
+function updateScenarioDetails() {
+  const scenario = state.scenarios[elements.scenario.value];
+  if (!scenario) {
+    elements.scenarioDescription.textContent = "Scenario details are loading.";
+    elements.scenarioRates.innerHTML = "";
+    elements.scenarioWindows.textContent = "";
+    return;
+  }
+  elements.scenarioDescription.textContent = scenario.description;
+  elements.scenarioRates.innerHTML = "";
+  for (const approach of approaches) {
+    const item = document.createElement("div");
+    item.innerHTML = `<span>${approach}</span><strong>${scenario.arrivals_per_minute[approach] ?? 0}/min</strong>`;
+    elements.scenarioRates.append(item);
+  }
+  if (!scenario.demand_windows.length) {
+    elements.scenarioWindows.textContent = "No timed demand windows.";
+    return;
+  }
+  elements.scenarioWindows.textContent = scenario.demand_windows
+    .map((window) => `${window.start_s}s-${window.end_s}s demand changes`)
+    .join("; ");
+}
+
+function updateFaultDetails() {
+  const faults = state.faultProfiles[elements.faultProfile.value] ?? [];
+  if (!faults.length) {
+    elements.faultDescription.textContent = "No detector fault is selected.";
+    elements.evidenceFault.textContent = "None selected";
+    elements.evidenceFault.className = "";
+    return;
+  }
+  elements.faultDescription.textContent = faults
+    .map((fault) => `${fault.approaches.join(", ")} ${fault.mode.replace("_", " ")} from ${fault.start_s}s to ${fault.end_s}s`)
+    .join("; ");
+  elements.evidenceFault.textContent = elements.faultProfile.value.replaceAll("-", " ");
+  elements.evidenceFault.className = "benchmark-negative";
 }
 
 function applySummary(summary) {
@@ -394,6 +447,25 @@ function applySummary(summary) {
   elements.meanWait.textContent = `${summary.mean_wait_s.toFixed(1)}s`;
   elements.maxQueue.textContent = summary.max_queue;
   elements.violations.textContent = summary.conflicting_green_violations;
+  elements.evidenceSafety.textContent =
+    summary.conflicting_green_violations === 0
+      ? "0 violations"
+      : `${summary.conflicting_green_violations} violations`;
+  elements.evidenceSafety.classList.toggle("benchmark-positive", summary.conflicting_green_violations === 0);
+  elements.evidenceSafety.classList.toggle("benchmark-negative", summary.conflicting_green_violations !== 0);
+}
+
+function applyEvidenceFromBenchmark(rows) {
+  const selected = elements.scenario.value;
+  const adaptive = rows.find((row) => row.scenario === selected && row.controller === "adaptive");
+  if (!adaptive || adaptive.mean_wait_improvement_pct === null || adaptive.mean_wait_improvement_pct === undefined) {
+    elements.evidenceWait.textContent = "No comparison";
+    elements.evidenceWait.className = "benchmark-negative";
+    return;
+  }
+  const value = adaptive.mean_wait_improvement_pct;
+  elements.evidenceWait.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(1)}% wait`;
+  elements.evidenceWait.className = value >= 0 ? "benchmark-positive" : "benchmark-negative";
 }
 
 function resetRunView() {
@@ -436,6 +508,32 @@ async function loadRuns() {
       <td>${run.status}</td>
     `;
     elements.runsBody.append(row);
+  }
+}
+
+async function loadScenarioCatalog() {
+  try {
+    const response = await fetch("/api/scenarios");
+    if (!response.ok) {
+      return;
+    }
+    state.scenarios = await response.json();
+    updateScenarioDetails();
+  } catch (error) {
+    elements.scenarioDescription.textContent = "Scenario details could not be loaded.";
+  }
+}
+
+async function loadFaultProfiles() {
+  try {
+    const response = await fetch(`/api/fault-profiles?duration_s=${encodeURIComponent(elements.duration.value)}`);
+    if (!response.ok) {
+      return;
+    }
+    state.faultProfiles = await response.json();
+    updateFaultDetails();
+  } catch (error) {
+    elements.faultDescription.textContent = "Fault profile details could not be loaded.";
   }
 }
 
@@ -678,6 +776,7 @@ async function runBenchmarkForScenarios(scenarios, runningLabel) {
       elements.benchmarkBody.append(tr);
     }
     renderAggregateCharts(payload.aggregates);
+    applyEvidenceFromBenchmark(payload.rows);
     elements.benchmarkStatus.textContent = `${payload.rows.length} rows, ${seeds.length} seeds`;
   } catch (error) {
     elements.benchmarkStatus.textContent = "Failed";
@@ -686,37 +785,98 @@ async function runBenchmarkForScenarios(scenarios, runningLabel) {
   }
 }
 
-function runSimulation() {
+function runSimulation(options = {}) {
   if (state.running) {
-    return;
+    return Promise.resolve(null);
   }
   resetRunView();
   setRunning(true);
   setStatus("Connecting");
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const socket = new WebSocket(`${protocol}://${window.location.host}/ws/simulation?${params()}`);
+  const socket = new WebSocket(`${protocol}://${window.location.host}/ws/simulation?${params(options.persist ?? "true")}`);
   state.socket = socket;
+  let resolved = false;
 
-  socket.addEventListener("open", () => setStatus("Streaming"));
-  socket.addEventListener("message", (event) => {
-    const message = JSON.parse(event.data);
-    if (message.type === "step") {
-      applyStep(message);
-    }
-    if (message.type === "summary") {
-      applySummary(message.summary);
-      setStatus("Complete");
-      loadRuns();
-    }
+  return new Promise((resolve, reject) => {
+    socket.addEventListener("open", () => setStatus("Streaming"));
+    socket.addEventListener("message", (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === "step") {
+        applyStep(message);
+      }
+      if (message.type === "summary") {
+        applySummary(message.summary);
+        setStatus("Complete");
+        loadRuns();
+        resolved = true;
+        resolve(message.summary);
+      }
+    });
+    socket.addEventListener("close", () => {
+      setRunning(false);
+      state.socket = null;
+      if (!resolved) {
+        resolve(null);
+      }
+    });
+    socket.addEventListener("error", () => {
+      setStatus("Connection error");
+      setRunning(false);
+      if (!resolved) {
+        reject(new Error("Simulation connection error"));
+      }
+    });
   });
-  socket.addEventListener("close", () => {
-    setRunning(false);
-    state.socket = null;
-  });
-  socket.addEventListener("error", () => {
-    setStatus("Connection error");
-    setRunning(false);
-  });
+}
+
+function setControls(preset) {
+  elements.controller.value = preset.controller;
+  elements.scenario.value = preset.scenario;
+  elements.faultProfile.value = preset.faultProfile;
+  elements.duration.value = preset.duration;
+  elements.step.value = preset.step;
+  elements.seed.value = preset.seed;
+  loadFaultProfiles();
+}
+
+function delay(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function runDemoTour() {
+  if (state.running) {
+    return;
+  }
+  elements.tourButton.disabled = true;
+  elements.tourButton.textContent = "Tour running";
+  try {
+    setStatus("Tour: adaptive heavy demand");
+    setControls({ ...presetConfig["adaptive-ns"], duration: 60 });
+    await runSimulation();
+    await delay(500);
+    setStatus("Tour: detector fault");
+    setControls({ ...presetConfig.fault, duration: 60 });
+    await runSimulation();
+    await delay(500);
+    setStatus("Tour: selected comparison");
+    elements.benchmarkSeeds.value = 5;
+    await runSelectedComparison();
+    setStatus("Tour complete");
+  } finally {
+    elements.tourButton.disabled = false;
+    elements.tourButton.textContent = "Run Demo Tour";
+  }
+}
+
+function applyPreset(name) {
+  const preset = presetConfig[name];
+  if (!preset) {
+    return;
+  }
+  stopSimulation();
+  setControls(preset);
+  resetRunView();
+  runSimulation();
 }
 
 function stopSimulation() {
@@ -734,35 +894,23 @@ function resetDashboard() {
   resetRunView();
 }
 
-function applyPreset(name) {
-  const preset = presetConfig[name];
-  if (!preset) {
-    return;
-  }
-  stopSimulation();
-  elements.controller.value = preset.controller;
-  elements.scenario.value = preset.scenario;
-  elements.faultProfile.value = preset.faultProfile;
-  elements.duration.value = preset.duration;
-  elements.step.value = preset.step;
-  elements.seed.value = preset.seed;
-  resetRunView();
-  runSimulation();
-}
-
 elements.runButton.addEventListener("click", runSimulation);
 elements.stopButton.addEventListener("click", stopSimulation);
 elements.resetButton.addEventListener("click", resetDashboard);
 elements.benchmarkButton.addEventListener("click", runBenchmark);
 elements.compareButton.addEventListener("click", runSelectedComparison);
+elements.tourButton.addEventListener("click", runDemoTour);
 elements.controller.addEventListener("change", updateDemoNote);
 elements.scenario.addEventListener("change", updateDemoNote);
 elements.faultProfile.addEventListener("change", updateDemoNote);
+elements.duration.addEventListener("change", loadFaultProfiles);
 for (const button of elements.presetButtons) {
   button.addEventListener("click", () => applyPreset(button.dataset.preset));
 }
-activateSignals({ north: "red", east: "red", south: "red", west: "red" });
+activateSignals({ north: "red", east: "red", west: "red", south: "red" });
 renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
 clearAggregateCharts();
 updateDemoNote();
 loadRuns();
+loadScenarioCatalog();
+loadFaultProfiles();

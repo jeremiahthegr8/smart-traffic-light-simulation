@@ -17,6 +17,7 @@
       <button id="reset-button" type="button">Reset</button>
       <button id="benchmark-button" type="button">Benchmark</button>
       <button id="compare-button" type="button">Compare Selected</button>
+      <button id="tour-button" type="button">Run Demo Tour</button>
     </header>
 
     <main class="layout">
@@ -71,6 +72,13 @@
           <button type="button" class="preset-button" data-preset="burst">NS burst</button>
           <button type="button" class="preset-button" data-preset="fixed">Fixed baseline</button>
           <button type="button" class="preset-button" data-preset="fault">Detector fault</button>
+        </div>
+
+        <div class="scenario-card" aria-label="Scenario details">
+          <h2>Scenario details</h2>
+          <p id="scenario-description">Loading scenario details.</p>
+          <div id="scenario-rates" class="rate-grid"></div>
+          <p id="scenario-windows" class="scenario-windows"></p>
         </div>
       </section>
 
@@ -134,6 +142,17 @@
           <span>What this proves</span>
           <strong id="demo-title">Adaptive demand response</strong>
           <p id="demo-description">Run an adaptive NS-heavy scenario to show demand-responsive green timing, visible queues, and zero safety violations.</p>
+        </div>
+
+        <div class="evidence-strip" aria-label="Evidence status">
+          <div><span>Safety</span><strong id="evidence-safety">Not run</strong></div>
+          <div><span>Wait result</span><strong id="evidence-wait">Benchmark needed</strong></div>
+          <div><span>Detector fault</span><strong id="evidence-fault">None selected</strong></div>
+        </div>
+
+        <div class="fault-card" aria-label="Fault profile details">
+          <span>Fault profile details</span>
+          <p id="fault-description">No detector fault is selected.</p>
         </div>
 
         <div class="metric-grid">

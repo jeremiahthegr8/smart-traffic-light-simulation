@@ -26,6 +26,7 @@ body {
 
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
   gap: 16px;
@@ -80,6 +81,7 @@ button {
 #stop-button,
 #reset-button,
 #compare-button,
+#tour-button,
 .preset-button {
   border-color: var(--border);
   background: #ffffff;
@@ -149,6 +151,58 @@ button:disabled {
   text-align: left;
   font-size: 13px;
   font-weight: 700;
+}
+
+.scenario-card {
+  display: grid;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.scenario-card h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.scenario-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.rate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rate-grid div {
+  min-height: 48px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fbfcfd;
+}
+
+.rate-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.rate-grid strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+}
+
+.scenario-windows {
+  font-size: 12px;
 }
 
 label {
@@ -311,6 +365,42 @@ input {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
+}
+
+.evidence-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.evidence-strip div,
+.fault-card {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.evidence-strip span,
+.fault-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.evidence-strip strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.fault-card p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .metric-grid {
@@ -547,6 +637,10 @@ th {
   }
 
   .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .evidence-strip {
     grid-template-columns: 1fr;
   }
 }
