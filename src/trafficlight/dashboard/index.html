@@ -18,6 +18,7 @@
       <button id="benchmark-button" type="button">Benchmark</button>
       <button id="compare-button" type="button">Compare Selected</button>
       <button id="tour-button" type="button">Run Demo Tour</button>
+      <button id="copy-evidence-button" type="button">Copy Evidence</button>
     </header>
 
     <main class="layout">
@@ -155,6 +156,15 @@
           <p id="fault-description">No detector fault is selected.</p>
         </div>
 
+        <div class="presenter-cues" aria-label="Presenter cues">
+          <span>Presenter cues</span>
+          <ol>
+            <li>Run adaptive heavy demand and point to the busiest approach.</li>
+            <li>Switch to a detector fault and show queue versus detector mismatch.</li>
+            <li>Click Compare Selected to prove fixed-time versus adaptive performance.</li>
+          </ol>
+        </div>
+
         <div class="metric-grid">
           <article>
             <span>Completed</span>
@@ -175,6 +185,14 @@
           <article>
             <span>Fault profile</span>
             <strong id="fault-active">none</strong>
+          </article>
+          <article>
+            <span>Busiest approach</span>
+            <strong id="busiest-approach" class="metric-small">-</strong>
+          </article>
+          <article>
+            <span>Detector mismatch</span>
+            <strong id="detector-mismatch">0</strong>
           </article>
         </div>
 

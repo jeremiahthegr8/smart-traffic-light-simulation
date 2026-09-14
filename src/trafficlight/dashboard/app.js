@@ -75,6 +75,9 @@ const state = {
   socket: null,
   scenarios: {},
   faultProfiles: {},
+  lastSummary: null,
+  lastBenchmarkRows: [],
+  lastBenchmarkAggregates: [],
 };
 
 const elements = {
@@ -84,6 +87,7 @@ const elements = {
   benchmarkButton: document.querySelector("#benchmark-button"),
   compareButton: document.querySelector("#compare-button"),
   tourButton: document.querySelector("#tour-button"),
+  copyEvidenceButton: document.querySelector("#copy-evidence-button"),
   presetButtons: document.querySelectorAll(".preset-button"),
   status: document.querySelector("#connection-status"),
   controller: document.querySelector("#controller"),
@@ -101,6 +105,8 @@ const elements = {
   maxQueue: document.querySelector("#max-queue"),
   violations: document.querySelector("#violations"),
   faultActive: document.querySelector("#fault-active"),
+  busiestApproach: document.querySelector("#busiest-approach"),
+  detectorMismatch: document.querySelector("#detector-mismatch"),
   historyLine: document.querySelector("#history-line"),
   runsBody: document.querySelector("#runs-body"),
   benchmarkStatus: document.querySelector("#benchmark-status"),
@@ -162,11 +168,19 @@ function activateSignals(signals) {
   renderActiveLanes(signals);
 }
 
+function titleCase(value) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
 function updateQueues(queues) {
   let total = 0;
+  let busiest = { approach: "-", value: 0 };
   for (const approach of approaches) {
     const value = queues[approach] ?? 0;
     total += value;
+    if (value > busiest.value) {
+      busiest = { approach, value };
+    }
     state.maxQueue = Math.max(state.maxQueue, value);
     const meter = document.querySelector(`#queue-${approach}`);
     const label = document.querySelector(`#queue-${approach}-value`);
@@ -174,6 +188,8 @@ function updateQueues(queues) {
     meter.value = value;
     label.textContent = value;
   }
+  elements.busiestApproach.textContent =
+    busiest.approach === "-" ? "-" : `${titleCase(busiest.approach)} (${busiest.value})`;
   elements.maxQueue.textContent = state.maxQueue;
   history.push(total);
   if (history.length > maxHistory) {
@@ -188,6 +204,17 @@ function updateDetectorDemand(demand) {
     label.textContent = Math.round(demand[approach] ?? 0);
     label.classList.toggle("benchmark-negative", Math.round(demand[approach] ?? 0) !== Number(document.querySelector(`#queue-${approach}-value`).textContent));
   }
+}
+
+function updateDetectorMismatch(queues, demand) {
+  const mismatch = approaches.reduce((sum, approach) => {
+    const queueValue = queues[approach] ?? 0;
+    const demandValue = Math.round(demand[approach] ?? 0);
+    return sum + Math.abs(queueValue - demandValue);
+  }, 0);
+  elements.detectorMismatch.textContent = mismatch;
+  elements.detectorMismatch.classList.toggle("benchmark-negative", mismatch > 0);
+  elements.detectorMismatch.classList.toggle("benchmark-positive", mismatch === 0);
 }
 
 function svgElement(name, attributes = {}) {
@@ -387,6 +414,7 @@ function applyStep(message) {
   activateSignals(message.signals);
   updateQueues(message.queues);
   updateDetectorDemand(message.demand);
+  updateDetectorMismatch(message.queues, message.demand);
   renderVehicles(message.queues, message.signals);
 }
 
@@ -443,6 +471,7 @@ function updateFaultDetails() {
 }
 
 function applySummary(summary) {
+  state.lastSummary = summary;
   elements.completed.textContent = summary.completed;
   elements.meanWait.textContent = `${summary.mean_wait_s.toFixed(1)}s`;
   elements.maxQueue.textContent = summary.max_queue;
@@ -470,12 +499,16 @@ function applyEvidenceFromBenchmark(rows) {
 
 function resetRunView() {
   state.maxQueue = 0;
+  state.lastSummary = null;
   history.length = 0;
   elements.completed.textContent = "0";
   elements.meanWait.textContent = "-";
   elements.maxQueue.textContent = "0";
   elements.violations.textContent = "0";
   elements.faultActive.textContent = elements.faultProfile.value;
+  elements.busiestApproach.textContent = "-";
+  elements.detectorMismatch.textContent = "0";
+  elements.detectorMismatch.className = "";
   elements.phase.textContent = "all_red_to_ns";
   elements.phaseTime.textContent = "0.0s";
   elements.reason.textContent = "startup";
@@ -761,6 +794,8 @@ async function runBenchmarkForScenarios(scenarios, runningLabel) {
       throw new Error(`Benchmark failed with status ${response.status}`);
     }
     const payload = await response.json();
+    state.lastBenchmarkRows = payload.rows;
+    state.lastBenchmarkAggregates = payload.aggregates;
     for (const row of payload.rows) {
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -879,6 +914,86 @@ function applyPreset(name) {
   runSimulation();
 }
 
+function selectedAdaptiveAggregate() {
+  return state.lastBenchmarkAggregates.find(
+    (row) => row.scenario === elements.scenario.value && row.controller === "adaptive"
+  );
+}
+
+function evidenceSummaryText() {
+  const lines = [
+    "Simulation-Based Adaptive Smart Traffic-Light Controller Evidence",
+    "",
+    `Controller: ${elements.controller.value}`,
+    `Scenario: ${elements.scenario.value}`,
+    `Fault profile: ${elements.faultProfile.value}`,
+    `Duration: ${elements.duration.value}s`,
+    `Step: ${elements.step.value}s`,
+    `Seed: ${elements.seed.value}`,
+    "",
+    "Live run:",
+  ];
+
+  if (state.lastSummary) {
+    lines.push(
+      `Completed vehicles: ${state.lastSummary.completed}`,
+      `Mean wait: ${state.lastSummary.mean_wait_s.toFixed(2)}s`,
+      `Max queue: ${state.lastSummary.max_queue}`,
+      `Safety violations: ${state.lastSummary.conflicting_green_violations}`
+    );
+  } else {
+    lines.push("No completed live run captured in this dashboard session.");
+  }
+
+  lines.push("", "Current dashboard evidence:");
+  lines.push(
+    `Safety badge: ${elements.evidenceSafety.textContent}`,
+    `Wait result badge: ${elements.evidenceWait.textContent}`,
+    `Detector fault badge: ${elements.evidenceFault.textContent}`,
+    `Busiest approach: ${elements.busiestApproach.textContent}`,
+    `Detector mismatch: ${elements.detectorMismatch.textContent}`
+  );
+
+  const aggregate = selectedAdaptiveAggregate();
+  lines.push("", "Selected scenario benchmark:");
+  if (aggregate && aggregate.mean_wait_improvement_pct !== null && aggregate.mean_wait_improvement_pct !== undefined) {
+    lines.push(
+      `Adaptive mean wait improvement: ${aggregate.mean_wait_improvement_pct.toFixed(2)}%`,
+      `Adaptive completed delta vs fixed: ${aggregate.mean_completed_delta_vs_fixed.toFixed(2)}`,
+      `Adaptive max queue improvement: ${aggregate.mean_max_queue_improvement_pct.toFixed(2)}%`,
+      `Aggregate safety violations: ${aggregate.total_conflicting_green_violations}`,
+      `Benchmark runs: ${aggregate.runs}`
+    );
+  } else {
+    lines.push("Run Compare Selected or Benchmark to capture fixed/adaptive evidence.");
+  }
+
+  return lines.join("\n");
+}
+
+function downloadEvidenceText(text) {
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "traffic-light-dashboard-evidence.txt";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function copyEvidenceSummary() {
+  const text = evidenceSummaryText();
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus("Evidence copied");
+  } catch (error) {
+    downloadEvidenceText(text);
+    setStatus("Evidence downloaded");
+  }
+}
+
 function stopSimulation() {
   if (state.socket) {
     state.socket.close();
@@ -900,6 +1015,7 @@ elements.resetButton.addEventListener("click", resetDashboard);
 elements.benchmarkButton.addEventListener("click", runBenchmark);
 elements.compareButton.addEventListener("click", runSelectedComparison);
 elements.tourButton.addEventListener("click", runDemoTour);
+elements.copyEvidenceButton.addEventListener("click", copyEvidenceSummary);
 elements.controller.addEventListener("change", updateDemoNote);
 elements.scenario.addEventListener("change", updateDemoNote);
 elements.faultProfile.addEventListener("change", updateDemoNote);
