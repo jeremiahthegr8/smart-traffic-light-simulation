@@ -40,6 +40,18 @@
             <option value="alternating-peak">Alternating peak</option>
           </select>
         </label>
+        <div class="custom-scenario" aria-label="Custom scenario controls">
+          <label class="inline-check">
+            <input id="custom-enabled" type="checkbox" />
+            Use custom arrivals
+          </label>
+          <div class="custom-rate-grid">
+            <label>North <input id="custom-north" type="number" min="0" max="120" step="1" value="18" /></label>
+            <label>East <input id="custom-east" type="number" min="0" max="120" step="1" value="6" /></label>
+            <label>South <input id="custom-south" type="number" min="0" max="120" step="1" value="17" /></label>
+            <label>West <input id="custom-west" type="number" min="0" max="120" step="1" value="5" /></label>
+          </div>
+        </div>
         <label>
           Fault profile
           <select id="fault-profile">

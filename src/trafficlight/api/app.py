@@ -32,6 +32,7 @@ class SimulationRequest(BaseModel):
     step_s: float = Field(default=0.5, gt=0, le=10)
     seed: int = 42
     persist: bool = True
+    custom_arrivals_per_minute: dict[str, float] | None = None
 
 
 class BenchmarkRequest(BaseModel):
@@ -91,21 +92,22 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
 
     @app.post("/api/simulations")
     def create_simulation(request: SimulationRequest) -> dict:
-        if request.scenario not in SCENARIOS:
+        if request.custom_arrivals_per_minute is None and request.scenario not in SCENARIOS:
             raise HTTPException(status_code=404, detail="Unknown scenario")
         try:
             faults = _faults_for_profile(request.fault_profile, request.duration_s)
+            return run_simulation(
+                controller_name=request.controller,
+                scenario_name=request.scenario,
+                duration_s=request.duration_s,
+                step_s=request.step_s,
+                seed=request.seed,
+                db_path=app.state.db_path if request.persist else None,
+                sensor_faults=faults,
+                custom_arrivals_per_minute=request.custom_arrivals_per_minute,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return run_simulation(
-            controller_name=request.controller,
-            scenario_name=request.scenario,
-            duration_s=request.duration_s,
-            step_s=request.step_s,
-            seed=request.seed,
-            db_path=app.state.db_path if request.persist else None,
-            sensor_faults=faults,
-        )
 
     @app.post("/api/benchmarks")
     def create_benchmark(request: BenchmarkRequest) -> dict:
@@ -156,10 +158,20 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
         seed: int = 42,
         persist: bool = True,
         fault_profile: str = "none",
+        custom_north: float | None = Query(default=None, ge=0, le=120),
+        custom_east: float | None = Query(default=None, ge=0, le=120),
+        custom_south: float | None = Query(default=None, ge=0, le=120),
+        custom_west: float | None = Query(default=None, ge=0, le=120),
     ) -> None:
         await websocket.accept()
         loop = asyncio.get_running_loop()
         queue: asyncio.Queue[dict] = asyncio.Queue()
+        custom_arrivals = _custom_arrivals_from_query(
+            custom_north,
+            custom_east,
+            custom_south,
+            custom_west,
+        )
 
         def publish(message: dict) -> None:
             loop.call_soon_threadsafe(queue.put_nowait, message)
@@ -175,6 +187,7 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
                     db_path=app.state.db_path if persist else None,
                     on_step=publish,
                     sensor_faults=_faults_for_profile(fault_profile, duration_s),
+                    custom_arrivals_per_minute=custom_arrivals,
                 )
                 publish({"type": "summary", "summary": summary})
             except ValueError as exc:
@@ -204,9 +217,19 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
         step_s: float = 1.0,
         seed: int = 42,
         fault_profile: str = "none",
+        custom_north: float | None = Query(default=None, ge=0, le=120),
+        custom_east: float | None = Query(default=None, ge=0, le=120),
+        custom_south: float | None = Query(default=None, ge=0, le=120),
+        custom_west: float | None = Query(default=None, ge=0, le=120),
     ) -> None:
         await websocket.accept()
         try:
+            custom_arrivals = _custom_arrivals_from_query(
+                custom_north,
+                custom_east,
+                custom_south,
+                custom_west,
+            )
             messages: list[dict] = []
             summary = run_simulation(
                 controller_name=controller,
@@ -217,6 +240,7 @@ def create_app(db_path: str | Path = "trafficlight.db") -> FastAPI:
                 db_path=None,
                 on_step=messages.append,
                 sensor_faults=_faults_for_profile(fault_profile, duration_s),
+                custom_arrivals_per_minute=custom_arrivals,
             )
             for message in messages:
                 await websocket.send_json(message)
@@ -232,6 +256,26 @@ def _faults_for_profile(profile: str, duration_s: float):
     if profile not in profiles:
         raise ValueError(f"unknown fault profile: {profile}")
     return profiles[profile]
+
+
+def _custom_arrivals_from_query(
+    north: float | None,
+    east: float | None,
+    south: float | None,
+    west: float | None,
+) -> dict[str, float] | None:
+    values = {
+        "north": north,
+        "east": east,
+        "south": south,
+        "west": west,
+    }
+    supplied = [value is not None for value in values.values()]
+    if not any(supplied):
+        return None
+    if not all(supplied):
+        raise ValueError("all custom arrival rates must be supplied together")
+    return {approach: float(rate) for approach, rate in values.items() if rate is not None}
 
 
 app = create_app()

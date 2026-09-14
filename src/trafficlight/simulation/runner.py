@@ -5,11 +5,12 @@ from pathlib import Path
 from typing import Callable
 
 from trafficlight.domain.adaptive import AdaptiveController
+from trafficlight.domain.enums import Approach
 from trafficlight.domain.fixed_time import FixedTimeController
 from trafficlight.domain.models import TimingConfig
 from trafficlight.simulation.engine import SimulationEngine
 from trafficlight.simulation.faults import SensorFault
-from trafficlight.simulation.scenarios import SCENARIOS
+from trafficlight.simulation.scenarios import SCENARIOS, Scenario
 from trafficlight.simulation.signals import SimulatedSignalDriver
 from trafficlight.storage.database import connect_database
 from trafficlight.storage.repository import SQLiteSimulationLogger
@@ -37,9 +38,9 @@ def run_simulation(
     sample_interval_s: float = 1.0,
     on_step: StepObserver | None = None,
     sensor_faults: tuple[SensorFault, ...] = (),
+    custom_arrivals_per_minute: dict[str, float] | None = None,
 ) -> dict:
-    if scenario_name not in SCENARIOS:
-        raise ValueError(f"unknown scenario: {scenario_name}")
+    scenario = _resolve_scenario(scenario_name, custom_arrivals_per_minute)
     if duration_s <= 0:
         raise ValueError("duration_s must be positive")
     if step_s <= 0:
@@ -57,7 +58,7 @@ def run_simulation(
 
     try:
         engine = SimulationEngine(
-            SCENARIOS[scenario_name],
+            scenario,
             controller_name,
             controller,
             duration_s=duration_s,
@@ -71,3 +72,28 @@ def run_simulation(
     finally:
         if connection is not None:
             connection.close()
+
+
+def _resolve_scenario(
+    scenario_name: str,
+    custom_arrivals_per_minute: dict[str, float] | None,
+) -> Scenario:
+    if custom_arrivals_per_minute is None:
+        if scenario_name not in SCENARIOS:
+            raise ValueError(f"unknown scenario: {scenario_name}")
+        return SCENARIOS[scenario_name]
+
+    arrivals = {}
+    for approach in Approach:
+        if approach.value not in custom_arrivals_per_minute:
+            raise ValueError(f"missing custom arrival rate for {approach.value}")
+        rate = float(custom_arrivals_per_minute[approach.value])
+        if rate < 0:
+            raise ValueError("custom arrival rates must be non-negative")
+        arrivals[approach] = rate
+
+    return Scenario(
+        name=scenario_name,
+        description="Custom dashboard scenario.",
+        arrivals_per_minute=arrivals,
+    )

@@ -92,6 +92,11 @@ const elements = {
   status: document.querySelector("#connection-status"),
   controller: document.querySelector("#controller"),
   scenario: document.querySelector("#scenario"),
+  customEnabled: document.querySelector("#custom-enabled"),
+  customNorth: document.querySelector("#custom-north"),
+  customEast: document.querySelector("#custom-east"),
+  customSouth: document.querySelector("#custom-south"),
+  customWest: document.querySelector("#custom-west"),
   faultProfile: document.querySelector("#fault-profile"),
   duration: document.querySelector("#duration"),
   step: document.querySelector("#step"),
@@ -147,15 +152,23 @@ function setRunning(running) {
 }
 
 function params(persist = "true") {
-  return new URLSearchParams({
+  const values = new URLSearchParams({
     controller: elements.controller.value,
-    scenario: elements.scenario.value,
+    scenario: elements.customEnabled.checked ? "custom-dashboard" : elements.scenario.value,
     fault_profile: elements.faultProfile.value,
     duration_s: elements.duration.value,
     step_s: elements.step.value,
     seed: elements.seed.value,
     persist,
   });
+  if (elements.customEnabled.checked) {
+    const custom = customArrivals();
+    values.set("custom_north", custom.north);
+    values.set("custom_east", custom.east);
+    values.set("custom_south", custom.south);
+    values.set("custom_west", custom.west);
+  }
+  return values;
 }
 
 function activateSignals(signals) {
@@ -419,6 +432,15 @@ function applyStep(message) {
 }
 
 function updateDemoNote() {
+  if (elements.customEnabled.checked) {
+    elements.demoTitle.textContent =
+      `${elements.controller.value === "adaptive" ? "Adaptive" : "Fixed-time"}: Custom arrivals`;
+    elements.demoDescription.textContent =
+      "Uses your manual arrival rates to stress-test the controller under a what-if traffic pattern.";
+    updateScenarioDetails();
+    updateFaultDetails();
+    return;
+  }
   const note = demoNotes[elements.scenario.value] ?? demoNotes["ns-heavy"];
   const controller = elements.controller.value === "adaptive" ? "Adaptive" : "Fixed-time";
   const fault =
@@ -431,7 +453,29 @@ function updateDemoNote() {
   updateFaultDetails();
 }
 
+function customArrivals() {
+  return {
+    north: Math.max(0, Number(elements.customNorth.value || 0)),
+    east: Math.max(0, Number(elements.customEast.value || 0)),
+    south: Math.max(0, Number(elements.customSouth.value || 0)),
+    west: Math.max(0, Number(elements.customWest.value || 0)),
+  };
+}
+
 function updateScenarioDetails() {
+  if (elements.customEnabled.checked) {
+    const arrivals = customArrivals();
+    elements.scenarioDescription.textContent =
+      "Custom dashboard scenario using manually selected vehicle arrival rates per minute.";
+    elements.scenarioRates.innerHTML = "";
+    for (const approach of approaches) {
+      const item = document.createElement("div");
+      item.innerHTML = `<span>${approach}</span><strong>${arrivals[approach]}/min</strong>`;
+      elements.scenarioRates.append(item);
+    }
+    elements.scenarioWindows.textContent = "No timed demand windows in custom mode.";
+    return;
+  }
   const scenario = state.scenarios[elements.scenario.value];
   if (!scenario) {
     elements.scenarioDescription.textContent = "Scenario details are loading.";
@@ -770,6 +814,12 @@ async function runBenchmark() {
 }
 
 async function runSelectedComparison() {
+  if (elements.customEnabled.checked) {
+    elements.benchmarkStatus.textContent = "Custom scenarios use live simulation only";
+    elements.evidenceWait.textContent = "Built-in only";
+    elements.evidenceWait.className = "";
+    return;
+  }
   await runBenchmarkForScenarios([elements.scenario.value], "Comparing selected scenario");
 }
 
@@ -865,6 +915,7 @@ function runSimulation(options = {}) {
 }
 
 function setControls(preset) {
+  elements.customEnabled.checked = false;
   elements.controller.value = preset.controller;
   elements.scenario.value = preset.scenario;
   elements.faultProfile.value = preset.faultProfile;
@@ -921,11 +972,14 @@ function selectedAdaptiveAggregate() {
 }
 
 function evidenceSummaryText() {
+  const scenarioName = elements.customEnabled.checked
+    ? `custom (${Object.entries(customArrivals()).map(([key, value]) => `${key} ${value}/min`).join(", ")})`
+    : elements.scenario.value;
   const lines = [
     "Simulation-Based Adaptive Smart Traffic-Light Controller Evidence",
     "",
     `Controller: ${elements.controller.value}`,
-    `Scenario: ${elements.scenario.value}`,
+    `Scenario: ${scenarioName}`,
     `Fault profile: ${elements.faultProfile.value}`,
     `Duration: ${elements.duration.value}s`,
     `Step: ${elements.step.value}s`,
@@ -1018,6 +1072,10 @@ elements.tourButton.addEventListener("click", runDemoTour);
 elements.copyEvidenceButton.addEventListener("click", copyEvidenceSummary);
 elements.controller.addEventListener("change", updateDemoNote);
 elements.scenario.addEventListener("change", updateDemoNote);
+elements.customEnabled.addEventListener("change", updateDemoNote);
+for (const input of [elements.customNorth, elements.customEast, elements.customSouth, elements.customWest]) {
+  input.addEventListener("input", updateDemoNote);
+}
 elements.faultProfile.addEventListener("change", updateDemoNote);
 elements.duration.addEventListener("change", loadFaultProfiles);
 for (const button of elements.presetButtons) {
