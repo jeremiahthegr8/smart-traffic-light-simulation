@@ -14,6 +14,8 @@ format.
 - Demo rehearsal result: `04-demo-rehearsal-result.md`
 - Institution format reference: `06-institution-format-reference.md`
 - Final run manual: `10-simulation-run-manual.md`
+- Separate Chapter One document: `11-chapter-one-introduction.docx`
+- Separate Chapter Two document: `12-chapter-two-literature-review.docx`
 - Dashboard screenshots: `screenshots/`
 - CSV/chart evidence: `evidence/`
 - Requirements specification: `docs/proposal/requirements-specification.md`
@@ -39,6 +41,7 @@ the repository alone.
 - Required title-page format and programme name.
 - Student names, student IDs, and supervisor name have been added to `02-final-report-gctu-structure.md`.
 - If title-page details change, regenerate `02-final-report-gctu-structure.docx` and `02-final-report-gctu-structure.pdf`.
+- If title-page details change, regenerate `11-chapter-one-introduction.docx` and `12-chapter-two-literature-review.docx`.
 - Required declaration, acknowledgement, abstract, and table-of-contents wording.
 - Required citation style, such as IEEE, Harvard, APA, or departmental style.
 - Required page numbering, margins, line spacing, and font.

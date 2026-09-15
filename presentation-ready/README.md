@@ -10,6 +10,8 @@ Use this folder for the project defence or viva.
 4. `02-final-report-gctu-structure.docx`
 5. `03-demonstration-script.md`
 6. `10-simulation-run-manual.md`
+7. `11-chapter-one-introduction.docx`
+8. `12-chapter-two-literature-review.docx`
 
 ## Supporting Files
 
@@ -20,6 +22,8 @@ Use this folder for the project defence or viva.
 - `08-defence-qa-cheat-sheet.md`: short answers for likely examiner questions.
 - `09-methodology-implementation.md`: methodology and implementation chapter draft.
 - `10-simulation-run-manual.md`: practical run manual for starting and demonstrating the dashboard.
+- `11-chapter-one-introduction.docx`: separate Chapter One document following the supplied GCTU format reference.
+- `12-chapter-two-literature-review.docx`: separate Chapter Two document following the supplied GCTU format reference.
 - `02-final-report-gctu-structure.md`: editable Markdown source for the report.
 - `screenshots/`: fallback dashboard screenshots.
 - `evidence/`: CSV summaries, SVG charts, and final result summary.

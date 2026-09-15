@@ -15,6 +15,7 @@ trafficlight.db
 *.db-shm
 *.sqlite-wal
 *.sqlite-shm
+~$*.docx
 .env
 .playwright-cli/
 output/

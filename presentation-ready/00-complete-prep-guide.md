@@ -357,6 +357,8 @@ Conclusion:
 | `03-demonstration-script.md` | Step-by-step demo script |
 | `04-demo-rehearsal-result.md` | Evidence that the demo path was tested |
 | `05-final-submission-checklist.md` | Final submission checks |
+| `11-chapter-one-introduction.docx` | Separate Chapter One in the supplied GCTU format |
+| `12-chapter-two-literature-review.docx` | Separate Chapter Two in the supplied GCTU format |
 | `07-final-details-needed.md` | Personal/institution details still needed |
 | `08-defence-qa-cheat-sheet.md` | Short examiner Q&A |
 | `screenshots/` | Fallback screenshots if live demo fails |
