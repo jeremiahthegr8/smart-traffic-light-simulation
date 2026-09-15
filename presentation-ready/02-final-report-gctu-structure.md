@@ -327,10 +327,16 @@ aggregate charts.
 
 Presentation evidence includes:
 
-- `output/playwright/dashboard-live-simulation.png`
-- `output/playwright/dashboard-fault-mismatch.png`
-- `output/playwright/dashboard-benchmark-results.png`
+- `presentation-ready/screenshots/dashboard-live-simulation.png`
+- `presentation-ready/screenshots/dashboard-fault-mismatch.png`
+- `presentation-ready/screenshots/dashboard-benchmark-results.png`
 - `01-presentation-deck.pptx`
+
+![Figure 4.1: Live adaptive dashboard with vehicles, signal countdowns, road labels, and telemetry.](screenshots/dashboard-live-simulation.png)
+
+![Figure 4.2: Detector fault evidence showing true queue values separated from faulty detector demand.](screenshots/dashboard-fault-mismatch.png)
+
+![Figure 4.3: Fixed-time versus adaptive comparison with row-level results and aggregate charts.](screenshots/dashboard-benchmark-results.png)
 
 ### 4.5 Testing and Validation
 
@@ -349,7 +355,7 @@ The automated test suite covers:
 Latest result:
 
 ```text
-24 passed, 1 warning
+27 passed, 1 warning
 ```
 
 The warning is a Starlette TestClient deprecation warning and does not indicate a project test
@@ -485,21 +491,21 @@ repeatable, and evidence-based implementation.
 
 | Artifact | Purpose |
 |---|---|
-| `results/dissertation/results_summary.md` | Markdown experiment summary |
-| `results/dissertation/benchmark_rows.csv` | Row-level fixed/adaptive benchmark data |
-| `results/dissertation/benchmark_summary.csv` | Aggregate benchmark statistics |
-| `results/dissertation/failure_modes.csv` | Detector-fault experiment data |
-| `results/dissertation/mean_wait.svg` | Mean waiting-time chart |
-| `results/dissertation/max_queue.svg` | Maximum queue chart |
-| `results/dissertation/completed.svg` | Completed vehicles chart |
+| `presentation-ready/evidence/results_summary.md` | Markdown experiment summary |
+| `presentation-ready/evidence/benchmark_rows.csv` | Row-level fixed/adaptive benchmark data |
+| `presentation-ready/evidence/benchmark_summary.csv` | Aggregate benchmark statistics |
+| `presentation-ready/evidence/failure_modes.csv` | Detector-fault experiment data |
+| `presentation-ready/evidence/mean_wait.svg` | Mean waiting-time chart |
+| `presentation-ready/evidence/max_queue.svg` | Maximum queue chart |
+| `presentation-ready/evidence/completed.svg` | Completed vehicles chart |
 
 ### Appendix B: Dashboard Evidence
 
 | Artifact | Purpose |
 |---|---|
-| `output/playwright/dashboard-live-simulation.png` | Live simulation with visible vehicles |
-| `output/playwright/dashboard-fault-mismatch.png` | Detector fault showing queue/demand mismatch |
-| `output/playwright/dashboard-benchmark-results.png` | Benchmark results table and aggregate charts |
+| `presentation-ready/screenshots/dashboard-live-simulation.png` | Live simulation with visible vehicles |
+| `presentation-ready/screenshots/dashboard-fault-mismatch.png` | Detector fault showing queue/demand mismatch |
+| `presentation-ready/screenshots/dashboard-benchmark-results.png` | Benchmark results table and aggregate charts |
 
 ### Appendix C: Important Commands
 

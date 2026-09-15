@@ -4,23 +4,153 @@ const benchmarkScenarios = ["balanced", "ns-heavy", "ew-heavy", "ns-burst", "alt
 const history = [];
 const maxHistory = 80;
 const svgNamespace = "http://www.w3.org/2000/svg";
+const visualVehicleLimit = 12;
+const vehicleSlots = {
+  north: { startX: 284, startY: 190, laneDx: 26, laneDy: 0, rowDx: 0, rowDy: -24 },
+  south: { startX: 342, startY: 426, laneDx: -26, laneDy: 0, rowDx: 0, rowDy: 24 },
+  east: { startX: 428, startY: 284, laneDx: 0, laneDy: 26, rowDx: 28, rowDy: 0 },
+  west: { startX: 188, startY: 342, laneDx: 0, laneDy: -26, rowDx: -28, rowDy: 0 },
+};
+const entryPoints = {
+  north: { x: 284, y: -36 },
+  south: { x: 342, y: 650 },
+  east: { x: 650, y: 284 },
+  west: { x: -36, y: 342 },
+};
+const exitPoints = {
+  north: { x: 286, y: 650 },
+  south: { x: 340, y: -36 },
+  east: { x: -44, y: 286 },
+  west: { x: 650, y: 340 },
+};
+const departurePoints = {
+  north: { x: 286, y: 224 },
+  south: { x: 340, y: 392 },
+  east: { x: 392, y: 286 },
+  west: { x: 224, y: 340 },
+};
+const timingDefaults = {
+  fixedGreen: 20,
+  amber: 3,
+  allRed: 2,
+};
+const phaseSequence = [
+  "all_red_to_ns",
+  "ns_green",
+  "ns_amber",
+  "all_red_to_ew",
+  "ew_green",
+  "ew_amber",
+];
+const overrideReasons = new Set(["no_active_demand", "maximum_green"]);
+const presetConfig = {
+  "adaptive-ns": {
+    controller: "adaptive",
+    scenario: "ns-heavy",
+    faultProfile: "none",
+    duration: 120,
+    step: 1,
+    seed: 42,
+  },
+  "adaptive-ew": {
+    controller: "adaptive",
+    scenario: "ew-heavy",
+    faultProfile: "none",
+    duration: 120,
+    step: 1,
+    seed: 42,
+  },
+  burst: {
+    controller: "adaptive",
+    scenario: "ns-burst",
+    faultProfile: "none",
+    duration: 180,
+    step: 1,
+    seed: 42,
+  },
+  fixed: {
+    controller: "fixed",
+    scenario: "ns-heavy",
+    faultProfile: "none",
+    duration: 120,
+    step: 1,
+    seed: 42,
+  },
+  fault: {
+    controller: "adaptive",
+    scenario: "ns-heavy",
+    faultProfile: "ns-stuck-high",
+    duration: 120,
+    step: 1,
+    seed: 42,
+  },
+};
+const demoNotes = {
+  balanced: {
+    title: "Balanced traffic",
+    description: "Shows the controller under even demand, where adaptive control should behave conservatively and still preserve safety.",
+  },
+  "ns-heavy": {
+    title: "North/South heavy demand",
+    description: "Shows adaptive timing giving more service to the busier North/South movement while the phase machine prevents conflicting greens.",
+  },
+  "ew-heavy": {
+    title: "East/West heavy demand",
+    description: "Shows that the same adaptive logic works when the heavier flow is on the East/West road instead of North/South.",
+  },
+  "ns-burst": {
+    title: "Temporary demand burst",
+    description: "Shows a changing-demand case where the queue grows during a burst and the controller responds without changing safety rules.",
+  },
+  "alternating-peak": {
+    title: "Alternating peak demand",
+    description: "Shows a demand shift over time, useful for explaining why fixed-time control struggles with changing traffic patterns.",
+  },
+};
 
 const state = {
   running: false,
   maxQueue: 0,
   socket: null,
+  scenarios: {},
+  faultProfiles: {},
+  lastSummary: null,
+  lastBenchmarkRows: [],
+  lastBenchmarkAggregates: [],
+  lastCompleted: 0,
+  lastPhase: null,
+  lastTargetGreen: null,
+  visualQueues: {
+    north: [],
+    east: [],
+    south: [],
+    west: [],
+  },
+  overflowLabels: {},
+  vehicleSerial: 0,
 };
 
 const elements = {
   runButton: document.querySelector("#run-button"),
+  stopButton: document.querySelector("#stop-button"),
+  resetButton: document.querySelector("#reset-button"),
   benchmarkButton: document.querySelector("#benchmark-button"),
+  compareButton: document.querySelector("#compare-button"),
+  tourButton: document.querySelector("#tour-button"),
+  copyEvidenceButton: document.querySelector("#copy-evidence-button"),
+  presetButtons: document.querySelectorAll(".preset-button"),
   status: document.querySelector("#connection-status"),
-  statusPill: document.querySelector("#status-pill"),
   controller: document.querySelector("#controller"),
   scenario: document.querySelector("#scenario"),
+  customEnabled: document.querySelector("#custom-enabled"),
+  customNorth: document.querySelector("#custom-north"),
+  customEast: document.querySelector("#custom-east"),
+  customSouth: document.querySelector("#custom-south"),
+  customWest: document.querySelector("#custom-west"),
   faultProfile: document.querySelector("#fault-profile"),
   duration: document.querySelector("#duration"),
   step: document.querySelector("#step"),
+  playbackSpeed: document.querySelector("#playback-speed"),
   seed: document.querySelector("#seed"),
   benchmarkSeeds: document.querySelector("#benchmark-seeds"),
   phase: document.querySelector("#phase"),
@@ -31,6 +161,8 @@ const elements = {
   maxQueue: document.querySelector("#max-queue"),
   violations: document.querySelector("#violations"),
   faultActive: document.querySelector("#fault-active"),
+  busiestApproach: document.querySelector("#busiest-approach"),
+  detectorMismatch: document.querySelector("#detector-mismatch"),
   historyLine: document.querySelector("#history-line"),
   runsBody: document.querySelector("#runs-body"),
   benchmarkStatus: document.querySelector("#benchmark-status"),
@@ -39,36 +171,84 @@ const elements = {
   benchmarkQueueChart: document.querySelector("#benchmark-queue-chart"),
   activeLayer: document.querySelector("#active-layer"),
   vehicleLayer: document.querySelector("#vehicle-layer"),
+  demoTitle: document.querySelector("#demo-title"),
+  demoDescription: document.querySelector("#demo-description"),
+  scenarioDescription: document.querySelector("#scenario-description"),
+  scenarioRates: document.querySelector("#scenario-rates"),
+  scenarioWindows: document.querySelector("#scenario-windows"),
+  evidenceSafety: document.querySelector("#evidence-safety"),
+  evidenceWait: document.querySelector("#evidence-wait"),
+  evidenceFault: document.querySelector("#evidence-fault"),
+  faultDescription: document.querySelector("#fault-description"),
+  examinerSummary: document.querySelector("#examiner-summary"),
+  countdownEvent: document.querySelector("#countdown-event"),
+  countdowns: Object.fromEntries(
+    approaches.map((approach) => [
+      approach,
+      {
+        card: document.querySelector(`#${approach}-countdown-card`),
+        remaining: document.querySelector(`#${approach}-countdown-remaining`),
+        state: document.querySelector(`#${approach}-countdown-state`),
+        next: document.querySelector(`#${approach}-countdown-next`),
+        mode: document.querySelector(`#${approach}-countdown-mode`),
+      },
+    ])
+  ),
 };
 
 function setStatus(text) {
   elements.status.textContent = text;
-  if (elements.statusPill) {
-    elements.statusPill.dataset.state = text.toLowerCase().replace(/\s+/g, "-");
-  }
 }
 
 function setBenchmarkRunning(running) {
   elements.benchmarkButton.disabled = running;
-  elements.benchmarkButton.textContent = running ? "Benchmarking" : "Run benchmark";
+  elements.compareButton.disabled = running;
+  elements.tourButton.disabled = running;
+  elements.benchmarkButton.textContent = running ? "Benchmarking" : "Benchmark";
+  elements.compareButton.textContent = running ? "Comparing" : "Compare Selected";
 }
 
 function setRunning(running) {
   state.running = running;
   elements.runButton.disabled = running;
-  elements.runButton.textContent = running ? "Running" : "Run simulation";
+  elements.stopButton.disabled = !running;
+  elements.tourButton.disabled = running;
+  elements.runButton.textContent = running ? "Running" : "Run";
 }
 
-function params() {
-  return new URLSearchParams({
+function playbackDelayMs() {
+  const stepSeconds = Math.max(0.1, Number(elements.step.value) || 1);
+  const speed = Number(elements.playbackSpeed.value);
+  if (!Number.isFinite(speed) || speed <= 0) {
+    return 0;
+  }
+  return Math.min(10000, Math.round((stepSeconds / speed) * 1000));
+}
+
+function playbackLabel() {
+  const option = elements.playbackSpeed.selectedOptions[0];
+  return option ? option.textContent : "Custom";
+}
+
+function params(persist = "true") {
+  const values = new URLSearchParams({
     controller: elements.controller.value,
-    scenario: elements.scenario.value,
+    scenario: elements.customEnabled.checked ? "custom-dashboard" : elements.scenario.value,
     fault_profile: elements.faultProfile.value,
     duration_s: elements.duration.value,
     step_s: elements.step.value,
+    playback_delay_ms: playbackDelayMs(),
     seed: elements.seed.value,
-    persist: "true",
+    persist,
   });
+  if (elements.customEnabled.checked) {
+    const custom = customArrivals();
+    values.set("custom_north", custom.north);
+    values.set("custom_east", custom.east);
+    values.set("custom_south", custom.south);
+    values.set("custom_west", custom.west);
+  }
+  return values;
 }
 
 function activateSignals(signals) {
@@ -77,15 +257,27 @@ function activateSignals(signals) {
       const lamp = document.querySelector(`#${approach}-${colour}`);
       lamp.classList.toggle("is-active", signals[approach] === colour);
     }
+    const guide = document.querySelector(`#${approach}-signal-guide`);
+    if (guide) {
+      guide.classList.toggle("is-active", signals[approach] === "green");
+    }
   }
   renderActiveLanes(signals);
 }
 
+function titleCase(value) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
 function updateQueues(queues) {
   let total = 0;
+  let busiest = { approach: "-", value: 0 };
   for (const approach of approaches) {
     const value = queues[approach] ?? 0;
     total += value;
+    if (value > busiest.value) {
+      busiest = { approach, value };
+    }
     state.maxQueue = Math.max(state.maxQueue, value);
     const meter = document.querySelector(`#queue-${approach}`);
     const label = document.querySelector(`#queue-${approach}-value`);
@@ -93,6 +285,8 @@ function updateQueues(queues) {
     meter.value = value;
     label.textContent = value;
   }
+  elements.busiestApproach.textContent =
+    busiest.approach === "-" ? "-" : `${titleCase(busiest.approach)} (${busiest.value})`;
   elements.maxQueue.textContent = state.maxQueue;
   history.push(total);
   if (history.length > maxHistory) {
@@ -107,6 +301,17 @@ function updateDetectorDemand(demand) {
     label.textContent = Math.round(demand[approach] ?? 0);
     label.classList.toggle("benchmark-negative", Math.round(demand[approach] ?? 0) !== Number(document.querySelector(`#queue-${approach}-value`).textContent));
   }
+}
+
+function updateDetectorMismatch(queues, demand) {
+  const mismatch = approaches.reduce((sum, approach) => {
+    const queueValue = queues[approach] ?? 0;
+    const demandValue = Math.round(demand[approach] ?? 0);
+    return sum + Math.abs(queueValue - demandValue);
+  }, 0);
+  elements.detectorMismatch.textContent = mismatch;
+  elements.detectorMismatch.classList.toggle("benchmark-negative", mismatch > 0);
+  elements.detectorMismatch.classList.toggle("benchmark-positive", mismatch === 0);
 }
 
 function svgElement(name, attributes = {}) {
@@ -125,12 +330,86 @@ function carDimensions(direction) {
   };
 }
 
-function addVehicle(x, y, direction, mode) {
+function queueSlot(approach, index) {
+  const config = vehicleSlots[approach];
+  const lane = index % 2;
+  const row = Math.floor(index / 2);
+  return {
+    x: config.startX + lane * config.laneDx + row * config.rowDx,
+    y: config.startY + lane * config.laneDy + row * config.rowDy,
+  };
+}
+
+function offsetPoint(point, approach, index) {
+  const laneOffset = index % 2 === 0 ? 0 : 28;
+  if (approach === "north") {
+    return { x: point.x + laneOffset, y: point.y };
+  }
+  if (approach === "south") {
+    return { x: point.x - laneOffset, y: point.y };
+  }
+  if (approach === "east") {
+    return { x: point.x, y: point.y + laneOffset };
+  }
+  return { x: point.x, y: point.y - laneOffset };
+}
+
+function setVehiclePosition(vehicle, point) {
+  vehicle.dataset.x = point.x;
+  vehicle.dataset.y = point.y;
+  vehicle.setAttribute("transform", `translate(${point.x} ${point.y})`);
+}
+
+function vehiclePosition(vehicle) {
+  return {
+    x: Number(vehicle.dataset.x || 0),
+    y: Number(vehicle.dataset.y || 0),
+  };
+}
+
+function animateVehicleTo(vehicle, point, options = {}) {
+  const from = vehiclePosition(vehicle);
+  const duration = options.duration ?? 0.7;
+  const delaySeconds = options.delay ?? 0;
+  vehicle.querySelectorAll(".motion").forEach((animation) => animation.remove());
+  vehicle.dataset.x = point.x;
+  vehicle.dataset.y = point.y;
+
+  window.setTimeout(() => {
+    if (!vehicle.isConnected) {
+      return;
+    }
+    const animation = svgElement("animateTransform", {
+      attributeName: "transform",
+      type: "translate",
+      from: `${from.x} ${from.y}`,
+      to: `${point.x} ${point.y}`,
+      dur: `${duration}s`,
+      fill: "freeze",
+      class: "motion",
+    });
+    vehicle.append(animation);
+    animation.beginElement();
+    window.setTimeout(() => {
+      if (!vehicle.isConnected) {
+        return;
+      }
+      setVehiclePosition(vehicle, point);
+      animation.remove();
+      if (options.remove) {
+        vehicle.remove();
+      }
+    }, duration * 1000 + 80);
+  }, delaySeconds * 1000);
+}
+
+function addVehicle(point, direction, mode) {
   const { width, height } = carDimensions(direction);
   const vehicle = svgElement("g", {
-    transform: `translate(${x} ${y})`,
-    class: `vehicle ${mode}`,
+    class: `vehicle ${mode} vehicle-${direction}`,
+    "data-id": `vehicle-${state.vehicleSerial}`,
   });
+  state.vehicleSerial += 1;
   vehicle.append(
     svgElement("rect", {
       x: 0,
@@ -153,12 +432,47 @@ function addVehicle(x, y, direction, mode) {
   );
   vehicle.append(svgElement("circle", { cx: width * 0.18, cy: height + 1, r: 2, class: "wheel" }));
   vehicle.append(svgElement("circle", { cx: width * 0.82, cy: height + 1, r: 2, class: "wheel" }));
+  setVehiclePosition(vehicle, point);
   elements.vehicleLayer.append(vehicle);
   return vehicle;
 }
 
-function addQueuedVehicle(x, y, direction) {
-  addVehicle(x, y, direction, "queued");
+function addQueuedVehicle(approach, slotIndex) {
+  const entry = offsetPoint(entryPoints[approach], approach, slotIndex);
+  const slot = queueSlot(approach, slotIndex);
+  const vehicle = addVehicle(entry, approach, "queued arriving");
+  state.visualQueues[approach].push(vehicle);
+  animateVehicleTo(vehicle, slot, { duration: 0.85, delay: Math.min(0.45, slotIndex * 0.05) });
+  window.setTimeout(() => vehicle.classList.remove("arriving"), 950);
+}
+
+function updateOverflowLabel(approach, overflow) {
+  const existing = state.overflowLabels[approach];
+  if (overflow <= 0) {
+    if (existing) {
+      existing.remove();
+      delete state.overflowLabels[approach];
+    }
+    return;
+  }
+
+  const position = {
+    north: { x: 320, y: 56 },
+    south: { x: 320, y: 584 },
+    east: { x: 570, y: 320 },
+    west: { x: 70, y: 320 },
+  }[approach];
+  const label = existing || svgElement("text", {
+    x: position.x,
+    y: position.y,
+    "text-anchor": "middle",
+    class: "queue-overflow",
+  });
+  label.textContent = `+${overflow}`;
+  if (!existing) {
+    state.overflowLabels[approach] = label;
+    elements.vehicleLayer.append(label);
+  }
 }
 
 function addOverflowLabel(text, x, y) {
@@ -172,42 +486,39 @@ function addOverflowLabel(text, x, y) {
   elements.vehicleLayer.append(label);
 }
 
-function addFlowVehicle(direction, laneOffset, delay) {
-  const x = {
-    north: 286 + laneOffset,
-    south: 340 - laneOffset,
-    east: 392,
-    west: 224,
-  }[direction];
-  const y = {
-    north: 224,
-    south: 392,
-    east: 286 + laneOffset,
-    west: 340 - laneOffset,
-  }[direction];
-  const vehicle = addVehicle(x, y, direction, "flowing");
+function departVehicle(approach, delaySeconds = 0) {
+  const vehicle = state.visualQueues[approach].shift();
+  const start = offsetPoint(departurePoints[approach], approach, delaySeconds > 0 ? 1 : 0);
+  const movingVehicle = vehicle || addVehicle(start, approach, "queued");
+  if (!vehicle) {
+    setVehiclePosition(movingVehicle, start);
+  }
+  movingVehicle.classList.remove("queued", "arriving");
+  movingVehicle.classList.add("flowing");
+  animateVehicleTo(
+    movingVehicle,
+    offsetPoint(exitPoints[approach], approach, delaySeconds > 0 ? 1 : 0),
+    { duration: 1.05, delay: delaySeconds, remove: true }
+  );
+}
 
-  const animate = svgElement("animateTransform", {
-    attributeName: "transform",
-    type: "translate",
-    from: {
-      north: `${x} 224`,
-      south: `${x} 392`,
-      east: `392 ${y}`,
-      west: `224 ${y}`,
-    }[direction],
-    to: {
-      north: `${x} 404`,
-      south: `${x} 224`,
-      east: `224 ${y}`,
-      west: `392 ${y}`,
-    }[direction],
-    dur: "0.9s",
-    begin: `${delay}s`,
-    repeatCount: "indefinite",
-  });
-  vehicle.append(animate);
-  elements.vehicleLayer.append(vehicle);
+function addThroughVehicle(approach, index) {
+  const start = offsetPoint(departurePoints[approach], approach, index);
+  const vehicle = addVehicle(start, approach, "flowing");
+  animateVehicleTo(
+    vehicle,
+    offsetPoint(exitPoints[approach], approach, index),
+    { duration: 1.05, delay: index * 0.18, remove: true }
+  );
+}
+
+function clearVehicles() {
+  elements.vehicleLayer.innerHTML = "";
+  for (const approach of approaches) {
+    state.visualQueues[approach] = [];
+  }
+  state.overflowLabels = {};
+  state.lastCompleted = 0;
 }
 
 function renderActiveLanes(signals) {
@@ -226,54 +537,35 @@ function renderActiveLanes(signals) {
   }
 }
 
-function renderVehicles(queues, signals) {
-  elements.vehicleLayer.innerHTML = "";
-  const visibleLimit = 10;
-  const configs = {
-    north: { startX: 284, startY: 190, laneDx: 26, laneDy: 0, rowDx: 0, rowDy: -22 },
-    south: { startX: 342, startY: 426, laneDx: -26, laneDy: 0, rowDx: 0, rowDy: 22 },
-    east: { startX: 428, startY: 284, laneDx: 0, laneDy: 26, rowDx: 26, rowDy: 0 },
-    west: { startX: 188, startY: 342, laneDx: 0, laneDy: -26, rowDx: -26, rowDy: 0 },
-  };
-
+function renderVehicles(queues, signals, completedVehicles = state.lastCompleted) {
+  let visibleDepartures = 0;
   for (const approach of approaches) {
     const count = queues[approach] ?? 0;
-    const visible = Math.min(count, visibleLimit);
-    const config = configs[approach];
-    for (let index = 0; index < visible; index += 1) {
-      const lane = index % 2;
-      const row = Math.floor(index / 2);
-      addQueuedVehicle(
-        config.startX + lane * config.laneDx + row * config.rowDx,
-        config.startY + lane * config.laneDy + row * config.rowDy,
-        approach
-      );
+    const targetVisible = Math.min(count, visualVehicleLimit);
+    const queue = state.visualQueues[approach];
+
+    while (queue.length > targetVisible) {
+      departVehicle(approach, visibleDepartures * 0.12);
+      visibleDepartures += 1;
     }
-    if (count > visibleLimit) {
-      const overflow = count - visibleLimit;
-      addOverflowLabel(
-        `+${overflow}`,
-        {
-          north: 320,
-          south: 320,
-          east: 540,
-          west: 100,
-        }[approach],
-        {
-          north: 72,
-          south: 548,
-          east: 320,
-          west: 320,
-        }[approach]
-      );
+    while (queue.length < targetVisible) {
+      addQueuedVehicle(approach, queue.length);
     }
-    if (signals[approach] === "green" && count > 0) {
-      addFlowVehicle(approach, 0, 0);
-      if (count > 3) {
-        addFlowVehicle(approach, 28, 0.3);
-      }
+    queue.forEach((vehicle, index) => {
+      animateVehicleTo(vehicle, queueSlot(approach, index), { duration: 0.45 });
+    });
+    updateOverflowLabel(approach, count - targetVisible);
+  }
+
+  const completedDelta = Math.max(0, completedVehicles - state.lastCompleted);
+  if (completedDelta > 0 && visibleDepartures === 0) {
+    const activeApproaches = approaches.filter((approach) => signals[approach] === "green");
+    const sourceApproaches = activeApproaches.length ? activeApproaches : approaches;
+    for (let index = 0; index < Math.min(completedDelta, 4); index += 1) {
+      addThroughVehicle(sourceApproaches[index % sourceApproaches.length], index);
     }
   }
+  state.lastCompleted = completedVehicles;
 }
 
 function drawHistory() {
@@ -295,6 +587,151 @@ function drawHistory() {
   elements.historyLine.setAttribute("points", points);
 }
 
+function roadGroup(approach) {
+  return approach === "north" || approach === "south" ? "ns" : "ew";
+}
+
+function phaseGroup(phase) {
+  if (phase.startsWith("ns_") || phase === "all_red_to_ns") {
+    return "ns";
+  }
+  return "ew";
+}
+
+function greenDuration(message) {
+  return Math.max(0, Number(message.target_green_s ?? timingDefaults.fixedGreen));
+}
+
+function phaseDuration(message) {
+  if (message.phase.endsWith("_green")) {
+    return greenDuration(message);
+  }
+  if (message.phase.endsWith("_amber")) {
+    return timingDefaults.amber;
+  }
+  return timingDefaults.allRed;
+}
+
+function phaseRemaining(message) {
+  return Math.max(0, phaseDuration(message) - Number(message.phase_elapsed_s || 0));
+}
+
+function secondsText(value) {
+  return `${Math.max(0, value).toFixed(1)}s`;
+}
+
+function nextGreenIn(approach, message) {
+  const group = roadGroup(approach);
+  const currentGroup = phaseGroup(message.phase);
+  const remaining = phaseRemaining(message);
+  const otherGreen = greenDuration(message);
+
+  if (message.phase === `all_red_to_${group}`) {
+    return remaining;
+  }
+  if (message.phase === `${group}_green`) {
+    return 0;
+  }
+  if (message.phase === `${group}_amber`) {
+    return timingDefaults.allRed + otherGreen + timingDefaults.amber + timingDefaults.allRed;
+  }
+  if (message.phase === `all_red_to_${currentGroup}`) {
+    return remaining + otherGreen + timingDefaults.amber + timingDefaults.allRed;
+  }
+  if (message.phase.endsWith("_green")) {
+    return remaining + timingDefaults.amber + timingDefaults.allRed;
+  }
+  return remaining + timingDefaults.allRed;
+}
+
+function nextSignalText(approach, message, colour) {
+  const remaining = phaseRemaining(message);
+  if (colour === "green") {
+    return `amber in ${secondsText(remaining)}`;
+  }
+  if (colour === "amber") {
+    return `red in ${secondsText(remaining)}`;
+  }
+  return `green in ${secondsText(nextGreenIn(approach, message))}`;
+}
+
+function countdownModeText(message, colour) {
+  if (overrideReasons.has(message.reason)) {
+    return `adaptive reset: ${message.reason.replaceAll("_", " ")}`;
+  }
+  if (elements.controller.value === "adaptive" && colour === "green" && message.target_green_s !== null) {
+    return `adaptive target ${secondsText(message.target_green_s)}`;
+  }
+  if (colour === "green") {
+    return `fixed target ${secondsText(timingDefaults.fixedGreen)}`;
+  }
+  if (colour === "amber") {
+    return `amber clearance ${secondsText(timingDefaults.amber)}`;
+  }
+  return `red clearance / waiting`;
+}
+
+function updateCountdownEvent(message) {
+  const phaseChanged = state.lastPhase !== null && state.lastPhase !== message.phase;
+  const targetChanged =
+    message.phase.endsWith("_green") &&
+    state.lastTargetGreen !== null &&
+    message.target_green_s !== null &&
+    Math.abs(Number(message.target_green_s) - Number(state.lastTargetGreen)) >= 0.5;
+
+  elements.countdownEvent.classList.remove("is-reset", "is-override");
+  if (phaseChanged) {
+    const previous = state.lastPhase.replaceAll("_", " ");
+    const current = message.phase.replaceAll("_", " ");
+    if (overrideReasons.has(message.reason)) {
+      elements.countdownEvent.textContent = `Adaptive override: ${previous} reset to ${current}`;
+      elements.countdownEvent.classList.add("is-override");
+    } else {
+      elements.countdownEvent.textContent = `Timer reset: ${previous} to ${current}`;
+      elements.countdownEvent.classList.add("is-reset");
+    }
+  } else if (targetChanged) {
+    elements.countdownEvent.textContent = `Adaptive target adjusted to ${secondsText(message.target_green_s)}`;
+    elements.countdownEvent.classList.add("is-override");
+  } else if (state.lastPhase === null) {
+    elements.countdownEvent.textContent = "Countdown active";
+    elements.countdownEvent.classList.add("is-reset");
+  }
+
+  state.lastPhase = message.phase;
+  state.lastTargetGreen = message.target_green_s;
+}
+
+function updateSignalCountdowns(message) {
+  updateCountdownEvent(message);
+  for (const approach of approaches) {
+    const colour = message.signals[approach] ?? "red";
+    const countdown = elements.countdowns[approach];
+    const remaining =
+      colour === "red" ? nextGreenIn(approach, message) : phaseRemaining(message);
+    countdown.card.dataset.colour = colour;
+    countdown.remaining.textContent = secondsText(remaining);
+    countdown.state.textContent = colour;
+    countdown.next.textContent = nextSignalText(approach, message, colour);
+    countdown.mode.textContent = countdownModeText(message, colour);
+  }
+}
+
+function resetSignalCountdowns() {
+  state.lastPhase = null;
+  state.lastTargetGreen = null;
+  elements.countdownEvent.textContent = "Waiting for run";
+  elements.countdownEvent.classList.remove("is-reset", "is-override");
+  for (const approach of approaches) {
+    const countdown = elements.countdowns[approach];
+    countdown.card.dataset.colour = "red";
+    countdown.remaining.textContent = "--";
+    countdown.state.textContent = "red";
+    countdown.next.textContent = "green in --";
+    countdown.mode.textContent = "timer idle";
+  }
+}
+
 function applyStep(message) {
   elements.phase.textContent = message.phase;
   elements.phaseTime.textContent = `${message.phase_elapsed_s.toFixed(1)}s`;
@@ -306,30 +743,204 @@ function applyStep(message) {
   activateSignals(message.signals);
   updateQueues(message.queues);
   updateDetectorDemand(message.demand);
-  renderVehicles(message.queues, message.signals);
+  updateDetectorMismatch(message.queues, message.demand);
+  updateSignalCountdowns(message);
+  renderVehicles(message.queues, message.signals, message.completed_vehicles);
+}
+
+function updateDemoNote() {
+  if (elements.customEnabled.checked) {
+    elements.demoTitle.textContent =
+      `${elements.controller.value === "adaptive" ? "Adaptive" : "Fixed-time"}: Custom arrivals`;
+    elements.demoDescription.textContent =
+      "Uses your manual arrival rates to stress-test the controller under a what-if traffic pattern.";
+    updateScenarioDetails();
+    updateFaultDetails();
+    return;
+  }
+  const note = demoNotes[elements.scenario.value] ?? demoNotes["ns-heavy"];
+  const controller = elements.controller.value === "adaptive" ? "Adaptive" : "Fixed-time";
+  const fault =
+    elements.faultProfile.value === "none"
+      ? ""
+      : ` Fault profile: ${elements.faultProfile.value.replaceAll("-", " ")}.`;
+  elements.demoTitle.textContent = `${controller}: ${note.title}`;
+  elements.demoDescription.textContent = `${note.description}${fault}`;
+  updateScenarioDetails();
+  updateFaultDetails();
+}
+
+function customArrivals() {
+  return {
+    north: Math.max(0, Number(elements.customNorth.value || 0)),
+    east: Math.max(0, Number(elements.customEast.value || 0)),
+    south: Math.max(0, Number(elements.customSouth.value || 0)),
+    west: Math.max(0, Number(elements.customWest.value || 0)),
+  };
+}
+
+function updateScenarioDetails() {
+  if (elements.customEnabled.checked) {
+    const arrivals = customArrivals();
+    elements.scenarioDescription.textContent =
+      "Custom dashboard scenario using manually selected vehicle arrival rates per minute.";
+    elements.scenarioRates.innerHTML = "";
+    for (const approach of approaches) {
+      const item = document.createElement("div");
+      item.innerHTML = `<span>${approach}</span><strong>${arrivals[approach]}/min</strong>`;
+      elements.scenarioRates.append(item);
+    }
+    elements.scenarioWindows.textContent = "No timed demand windows in custom mode.";
+    return;
+  }
+  const scenario = state.scenarios[elements.scenario.value];
+  if (!scenario) {
+    elements.scenarioDescription.textContent = "Scenario details are loading.";
+    elements.scenarioRates.innerHTML = "";
+    elements.scenarioWindows.textContent = "";
+    return;
+  }
+  elements.scenarioDescription.textContent = scenario.description;
+  elements.scenarioRates.innerHTML = "";
+  for (const approach of approaches) {
+    const item = document.createElement("div");
+    item.innerHTML = `<span>${approach}</span><strong>${scenario.arrivals_per_minute[approach] ?? 0}/min</strong>`;
+    elements.scenarioRates.append(item);
+  }
+  if (!scenario.demand_windows.length) {
+    elements.scenarioWindows.textContent = "No timed demand windows.";
+    return;
+  }
+  elements.scenarioWindows.textContent = scenario.demand_windows
+    .map((window) => `${window.start_s}s-${window.end_s}s demand changes`)
+    .join("; ");
+}
+
+function updateFaultDetails() {
+  const faults = state.faultProfiles[elements.faultProfile.value] ?? [];
+  if (!faults.length) {
+    elements.faultDescription.textContent = "No detector fault is selected.";
+    elements.evidenceFault.textContent = "None selected";
+    elements.evidenceFault.className = "";
+    return;
+  }
+  elements.faultDescription.textContent = faults
+    .map((fault) => `${fault.approaches.join(", ")} ${fault.mode.replace("_", " ")} from ${fault.start_s}s to ${fault.end_s}s`)
+    .join("; ");
+  elements.evidenceFault.textContent = elements.faultProfile.value.replaceAll("-", " ");
+  elements.evidenceFault.className = "benchmark-negative";
+}
+
+function activeScenarioName() {
+  return elements.customEnabled.checked ? "custom-dashboard" : elements.scenario.value;
+}
+
+function activeScenarioLabel() {
+  if (!elements.customEnabled.checked) {
+    return elements.scenario.value;
+  }
+  return `custom arrivals (${Object.entries(customArrivals())
+    .map(([key, value]) => `${key} ${value}/min`)
+    .join(", ")})`;
+}
+
+function setExaminerSummary(text) {
+  elements.examinerSummary.textContent = text;
+}
+
+function signedNumber(value, decimals = 1) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  const number = Number(value);
+  return `${number >= 0 ? "+" : ""}${number.toFixed(decimals)}`;
+}
+
+function updateExaminerSummaryFromLiveRun(summary) {
+  const controller = summary.controller === "adaptive" ? "Adaptive" : "Fixed-time";
+  setExaminerSummary(
+    `${controller} control on ${activeScenarioLabel()} completed ${summary.completed} vehicles with ` +
+      `${summary.mean_wait_s.toFixed(1)}s mean wait, maximum queue ${summary.max_queue}, and ` +
+      `${summary.conflicting_green_violations} conflicting-green safety violations.`
+  );
+}
+
+function updateExaminerSummaryFromComparison() {
+  const aggregate = selectedAdaptiveAggregate();
+  if (!aggregate || aggregate.mean_wait_improvement_pct === null || aggregate.mean_wait_improvement_pct === undefined) {
+    setExaminerSummary("Comparison completed, but no adaptive improvement value is available for the selected scenario.");
+    return;
+  }
+  const queueImprovement =
+    aggregate.mean_max_queue_improvement_pct === null || aggregate.mean_max_queue_improvement_pct === undefined
+      ? "no max-queue percentage available"
+      : `${signedNumber(aggregate.mean_max_queue_improvement_pct)}% max-queue change`;
+  setExaminerSummary(
+    `For ${activeScenarioLabel()}, adaptive control produced ${signedNumber(aggregate.mean_wait_improvement_pct)}% ` +
+      `mean-wait change, ${signedNumber(aggregate.mean_completed_delta_vs_fixed)} completed vehicles versus fixed-time, ` +
+      `${queueImprovement}, and ${aggregate.total_conflicting_green_violations} conflicting-green safety violations.`
+  );
 }
 
 function applySummary(summary) {
+  state.lastSummary = summary;
   elements.completed.textContent = summary.completed;
   elements.meanWait.textContent = `${summary.mean_wait_s.toFixed(1)}s`;
   elements.maxQueue.textContent = summary.max_queue;
   elements.violations.textContent = summary.conflicting_green_violations;
+  elements.evidenceSafety.textContent =
+    summary.conflicting_green_violations === 0
+      ? "0 violations"
+      : `${summary.conflicting_green_violations} violations`;
+  elements.evidenceSafety.classList.toggle("benchmark-positive", summary.conflicting_green_violations === 0);
+  elements.evidenceSafety.classList.toggle("benchmark-negative", summary.conflicting_green_violations !== 0);
+  updateExaminerSummaryFromLiveRun(summary);
+}
+
+function applyEvidenceFromBenchmark(rows) {
+  const selected = activeScenarioName();
+  const adaptive = rows.find((row) => row.scenario === selected && row.controller === "adaptive");
+  if (!adaptive || adaptive.mean_wait_improvement_pct === null || adaptive.mean_wait_improvement_pct === undefined) {
+    elements.evidenceWait.textContent = "No comparison";
+    elements.evidenceWait.className = "benchmark-negative";
+    updateExaminerSummaryFromComparison();
+    return;
+  }
+  const value = adaptive.mean_wait_improvement_pct;
+  elements.evidenceWait.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(1)}% wait`;
+  elements.evidenceWait.className = value >= 0 ? "benchmark-positive" : "benchmark-negative";
+  updateExaminerSummaryFromComparison();
 }
 
 function resetRunView() {
   state.maxQueue = 0;
+  state.lastSummary = null;
   history.length = 0;
   elements.completed.textContent = "0";
   elements.meanWait.textContent = "-";
   elements.maxQueue.textContent = "0";
   elements.violations.textContent = "0";
   elements.faultActive.textContent = elements.faultProfile.value;
+  elements.busiestApproach.textContent = "-";
+  elements.detectorMismatch.textContent = "0";
+  elements.detectorMismatch.className = "";
+  setExaminerSummary("Run a simulation or comparison to generate a plain-English result summary.");
   elements.phase.textContent = "all_red_to_ns";
   elements.phaseTime.textContent = "0.0s";
   elements.reason.textContent = "startup";
+  for (const approach of approaches) {
+    const meter = document.querySelector(`#queue-${approach}`);
+    const label = document.querySelector(`#queue-${approach}-value`);
+    meter.max = 80;
+    meter.value = 0;
+    label.textContent = "0";
+  }
   drawHistory();
   updateDetectorDemand({ north: 0, east: 0, south: 0, west: 0 });
+  resetSignalCountdowns();
+  clearVehicles();
   renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
+  updateDemoNote();
 }
 
 async function loadRuns() {
@@ -344,10 +955,36 @@ async function loadRuns() {
     row.innerHTML = `
       <td>${run.id}</td>
       <td>${run.scenario}</td>
-      <td>${run.controller}</td>
-      <td>${run.status}</td>
+      <td><span class="controller-pill ${run.controller}">${run.controller}</span></td>
+      <td><span class="status-pill ${run.status}">${run.status}</span></td>
     `;
     elements.runsBody.append(row);
+  }
+}
+
+async function loadScenarioCatalog() {
+  try {
+    const response = await fetch("/api/scenarios");
+    if (!response.ok) {
+      return;
+    }
+    state.scenarios = await response.json();
+    updateScenarioDetails();
+  } catch (error) {
+    elements.scenarioDescription.textContent = "Scenario details could not be loaded.";
+  }
+}
+
+async function loadFaultProfiles() {
+  try {
+    const response = await fetch(`/api/fault-profiles?duration_s=${encodeURIComponent(elements.duration.value)}`);
+    if (!response.ok) {
+      return;
+    }
+    state.faultProfiles = await response.json();
+    updateFaultDetails();
+  } catch (error) {
+    elements.faultDescription.textContent = "Fault profile details could not be loaded.";
   }
 }
 
@@ -365,6 +1002,13 @@ function formatImprovement(value) {
   const cssClass = value >= 0 ? "benchmark-positive" : "benchmark-negative";
   const prefix = value > 0 ? "+" : "";
   return `<span class="${cssClass}">${prefix}${value.toFixed(1)}%</span>`;
+}
+
+function improvementPct(baseline, candidate) {
+  if (!baseline) {
+    return null;
+  }
+  return ((baseline - candidate) / baseline) * 100;
 }
 
 function benchmarkSeeds() {
@@ -401,11 +1045,49 @@ function clearAggregateCharts() {
 
 function drawChartPlaceholder(svg, text) {
   svg.innerHTML = "";
+  const panel = svgElement("rect", {
+    x: 20,
+    y: 18,
+    width: 720,
+    height: 212,
+    rx: 14,
+    class: "chart-empty-panel",
+  });
+  svg.append(panel);
+
+  const bars = [
+    { x: 306, y: 128, height: 42, className: "chart-empty-fixed" },
+    { x: 350, y: 98, height: 72, className: "chart-empty-adaptive" },
+    { x: 398, y: 144, height: 26, className: "chart-empty-muted" },
+  ];
+  for (const bar of bars) {
+    svg.append(
+      svgElement("rect", {
+        x: bar.x,
+        y: bar.y,
+        width: 28,
+        height: bar.height,
+        rx: 5,
+        class: bar.className,
+      })
+    );
+  }
+  svg.append(svgElement("line", { x1: 280, y1: 174, x2: 454, y2: 174, class: "chart-empty-axis" }));
+
+  const title = svgElement("text", {
+    x: 380,
+    y: 82,
+    "text-anchor": "middle",
+    class: "chart-empty-title",
+  });
+  title.textContent = "No benchmark data yet";
+  svg.append(title);
+
   const label = svgElement("text", {
     x: 380,
-    y: 136,
+    y: 204,
     "text-anchor": "middle",
-    class: "chart-label",
+    class: "chart-empty-label",
   });
   label.textContent = text;
   svg.append(label);
@@ -427,6 +1109,11 @@ function drawGroupedChart(svg, aggregates, options) {
   const scenarios = benchmarkScenarios.filter((scenario) =>
     ["fixed", "adaptive"].some((controller) => byKey.has(`${scenario}:${controller}`))
   );
+  for (const row of aggregates) {
+    if (!scenarios.includes(row.scenario)) {
+      scenarios.push(row.scenario);
+    }
+  }
   const maxValue = Math.max(
     1,
     ...aggregates.map((row) => Number(row[options.metric] || 0) + Number(row[options.ciMetric] || 0))
@@ -547,8 +1234,148 @@ function drawGroupedChart(svg, aggregates, options) {
 }
 
 async function runBenchmark() {
+  await runBenchmarkForScenarios(benchmarkScenarios, "Running");
+}
+
+async function runSelectedComparison() {
+  if (elements.customEnabled.checked) {
+    await runCustomComparison();
+    return;
+  }
+  await runBenchmarkForScenarios([elements.scenario.value], "Comparing selected scenario");
+}
+
+function appendBenchmarkRow(row) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${row.scenario}</td>
+    <td>${row.seed}</td>
+    <td>${row.controller}</td>
+    <td>${row.completed}</td>
+    <td>${formatNumber(row.mean_wait_s)}s</td>
+    <td>${row.max_queue}</td>
+    <td>${formatImprovement(row.mean_wait_improvement_pct)}</td>
+    <td>${row.conflicting_green_violations}</td>
+  `;
+  elements.benchmarkBody.append(tr);
+}
+
+function customSimulationBody(controller) {
+  return {
+    controller,
+    scenario: "custom-dashboard",
+    fault_profile: elements.faultProfile.value,
+    duration_s: Number(elements.duration.value),
+    step_s: Number(elements.step.value),
+    seed: Number(elements.seed.value),
+    persist: false,
+    custom_arrivals_per_minute: customArrivals(),
+  };
+}
+
+async function fetchSimulationSummary(controller) {
+  const response = await fetch("/api/simulations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(customSimulationBody(controller)),
+  });
+  if (!response.ok) {
+    throw new Error(`Simulation failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+function customComparisonPayload(fixed, adaptive) {
+  const waitImprovement = improvementPct(fixed.mean_wait_s, adaptive.mean_wait_s);
+  const queueImprovement = improvementPct(fixed.max_queue, adaptive.max_queue);
+  const completedDelta = adaptive.completed - fixed.completed;
+  const seed = Number(elements.seed.value);
+  const rows = [
+    {
+      scenario: "custom-dashboard",
+      seed,
+      controller: "fixed",
+      arrivals: fixed.arrivals,
+      completed: fixed.completed,
+      throughput_veh_per_min: fixed.throughput_veh_per_min,
+      mean_wait_s: fixed.mean_wait_s,
+      max_queue: fixed.max_queue,
+      conflicting_green_violations: fixed.conflicting_green_violations,
+      completed_delta_vs_fixed: null,
+      mean_wait_improvement_pct: null,
+      max_queue_improvement_pct: null,
+    },
+    {
+      scenario: "custom-dashboard",
+      seed,
+      controller: "adaptive",
+      arrivals: adaptive.arrivals,
+      completed: adaptive.completed,
+      throughput_veh_per_min: adaptive.throughput_veh_per_min,
+      mean_wait_s: adaptive.mean_wait_s,
+      max_queue: adaptive.max_queue,
+      conflicting_green_violations: adaptive.conflicting_green_violations,
+      completed_delta_vs_fixed: completedDelta,
+      mean_wait_improvement_pct: waitImprovement,
+      max_queue_improvement_pct: queueImprovement,
+    },
+  ];
+  const aggregates = rows.map((row) => ({
+    scenario: row.scenario,
+    controller: row.controller,
+    runs: 1,
+    mean_completed: row.completed,
+    std_completed: 0,
+    ci95_completed: 0,
+    mean_wait_s: row.mean_wait_s,
+    std_wait_s: 0,
+    ci95_wait_s: 0,
+    mean_max_queue: row.max_queue,
+    std_max_queue: 0,
+    ci95_max_queue: 0,
+    total_conflicting_green_violations: row.conflicting_green_violations,
+    mean_completed_delta_vs_fixed: row.completed_delta_vs_fixed,
+    std_completed_delta_vs_fixed: 0,
+    ci95_completed_delta_vs_fixed: 0,
+    mean_wait_improvement_pct: row.mean_wait_improvement_pct,
+    std_wait_improvement_pct: 0,
+    ci95_wait_improvement_pct: 0,
+    mean_max_queue_improvement_pct: row.max_queue_improvement_pct,
+    std_max_queue_improvement_pct: 0,
+    ci95_max_queue_improvement_pct: 0,
+  }));
+  return { rows, aggregates };
+}
+
+async function runCustomComparison() {
   setBenchmarkRunning(true);
-  elements.benchmarkStatus.textContent = "Running";
+  elements.benchmarkStatus.textContent = "Comparing custom scenario";
+  elements.benchmarkBody.innerHTML = "";
+  clearAggregateCharts();
+  try {
+    const [fixed, adaptive] = await Promise.all([
+      fetchSimulationSummary("fixed"),
+      fetchSimulationSummary("adaptive"),
+    ]);
+    const payload = customComparisonPayload(fixed, adaptive);
+    state.lastBenchmarkRows = payload.rows;
+    state.lastBenchmarkAggregates = payload.aggregates;
+    for (const row of payload.rows) {
+      appendBenchmarkRow(row);
+    }
+    renderAggregateCharts(payload.aggregates);
+    applyEvidenceFromBenchmark(payload.rows);
+    elements.benchmarkStatus.textContent = "Custom fixed/adaptive comparison";
+  } catch (error) {
+    elements.benchmarkStatus.textContent = "Failed";
+  } finally {
+    setBenchmarkRunning(false);
+  }
+}
+
+async function runBenchmarkForScenarios(scenarios, runningLabel) {
+  setBenchmarkRunning(true);
+  elements.benchmarkStatus.textContent = runningLabel;
   elements.benchmarkBody.innerHTML = "";
   clearAggregateCharts();
   const seeds = benchmarkSeeds();
@@ -557,7 +1384,7 @@ async function runBenchmark() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        scenarios: benchmarkScenarios,
+        scenarios,
         seeds,
         duration_s: Number(elements.duration.value),
         step_s: Number(elements.step.value),
@@ -567,21 +1394,13 @@ async function runBenchmark() {
       throw new Error(`Benchmark failed with status ${response.status}`);
     }
     const payload = await response.json();
+    state.lastBenchmarkRows = payload.rows;
+    state.lastBenchmarkAggregates = payload.aggregates;
     for (const row of payload.rows) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.scenario}</td>
-        <td>${row.seed}</td>
-        <td>${row.controller}</td>
-        <td>${row.completed}</td>
-        <td>${formatNumber(row.mean_wait_s)}s</td>
-        <td>${row.max_queue}</td>
-        <td>${formatImprovement(row.mean_wait_improvement_pct)}</td>
-        <td>${row.conflicting_green_violations}</td>
-      `;
-      elements.benchmarkBody.append(tr);
+      appendBenchmarkRow(row);
     }
     renderAggregateCharts(payload.aggregates);
+    applyEvidenceFromBenchmark(payload.rows);
     elements.benchmarkStatus.textContent = `${payload.rows.length} rows, ${seeds.length} seeds`;
   } catch (error) {
     elements.benchmarkStatus.textContent = "Failed";
@@ -590,42 +1409,226 @@ async function runBenchmark() {
   }
 }
 
-function runSimulation() {
+function runSimulation(options = {}) {
   if (state.running) {
-    return;
+    return Promise.resolve(null);
   }
   resetRunView();
   setRunning(true);
-  setStatus("Connecting");
+  setStatus(`Connecting - ${playbackLabel()}`);
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const socket = new WebSocket(`${protocol}://${window.location.host}/ws/simulation?${params()}`);
+  const socket = new WebSocket(`${protocol}://${window.location.host}/ws/simulation?${params(options.persist ?? "true")}`);
   state.socket = socket;
+  let resolved = false;
 
-  socket.addEventListener("open", () => setStatus("Streaming"));
-  socket.addEventListener("message", (event) => {
-    const message = JSON.parse(event.data);
-    if (message.type === "step") {
-      applyStep(message);
-    }
-    if (message.type === "summary") {
-      applySummary(message.summary);
-      setStatus("Complete");
-      loadRuns();
-    }
-  });
-  socket.addEventListener("close", () => {
-    setRunning(false);
-    state.socket = null;
-  });
-  socket.addEventListener("error", () => {
-    setStatus("Connection error");
-    setRunning(false);
+  return new Promise((resolve, reject) => {
+    socket.addEventListener("open", () => setStatus(`Streaming - ${playbackLabel()}`));
+    socket.addEventListener("message", (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === "step") {
+        applyStep(message);
+      }
+      if (message.type === "summary") {
+        applySummary(message.summary);
+        setStatus("Complete");
+        loadRuns();
+        resolved = true;
+        resolve(message.summary);
+      }
+    });
+    socket.addEventListener("close", () => {
+      setRunning(false);
+      state.socket = null;
+      if (!resolved) {
+        resolve(null);
+      }
+    });
+    socket.addEventListener("error", () => {
+      setStatus("Connection error");
+      setRunning(false);
+      if (!resolved) {
+        reject(new Error("Simulation connection error"));
+      }
+    });
   });
 }
 
+function setControls(preset) {
+  elements.customEnabled.checked = false;
+  elements.controller.value = preset.controller;
+  elements.scenario.value = preset.scenario;
+  elements.faultProfile.value = preset.faultProfile;
+  elements.duration.value = preset.duration;
+  elements.step.value = preset.step;
+  elements.seed.value = preset.seed;
+  loadFaultProfiles();
+}
+
+function delay(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function runDemoTour() {
+  if (state.running) {
+    return;
+  }
+  elements.tourButton.disabled = true;
+  elements.tourButton.textContent = "Tour running";
+  try {
+    setStatus("Tour: adaptive heavy demand");
+    setControls({ ...presetConfig["adaptive-ns"], duration: 60 });
+    await runSimulation();
+    await delay(500);
+    setStatus("Tour: detector fault");
+    setControls({ ...presetConfig.fault, duration: 60 });
+    await runSimulation();
+    await delay(500);
+    setStatus("Tour: selected comparison");
+    elements.benchmarkSeeds.value = 5;
+    await runSelectedComparison();
+    setStatus("Tour complete");
+  } finally {
+    elements.tourButton.disabled = false;
+    elements.tourButton.textContent = "Run Demo Tour";
+  }
+}
+
+function applyPreset(name) {
+  const preset = presetConfig[name];
+  if (!preset) {
+    return;
+  }
+  stopSimulation();
+  setControls(preset);
+  resetRunView();
+  runSimulation();
+}
+
+function selectedAdaptiveAggregate() {
+  const selected = activeScenarioName();
+  return state.lastBenchmarkAggregates.find(
+    (row) => row.scenario === selected && row.controller === "adaptive"
+  );
+}
+
+function evidenceSummaryText() {
+  const lines = [
+    "Simulation-Based Adaptive Smart Traffic-Light Controller Evidence",
+    "",
+    `Controller: ${elements.controller.value}`,
+    `Scenario: ${activeScenarioLabel()}`,
+    `Fault profile: ${elements.faultProfile.value}`,
+    `Duration: ${elements.duration.value}s`,
+    `Step: ${elements.step.value}s`,
+    `Seed: ${elements.seed.value}`,
+    "",
+    "Live run:",
+  ];
+
+  if (state.lastSummary) {
+    lines.push(
+      `Completed vehicles: ${state.lastSummary.completed}`,
+      `Mean wait: ${state.lastSummary.mean_wait_s.toFixed(2)}s`,
+      `Max queue: ${state.lastSummary.max_queue}`,
+      `Safety violations: ${state.lastSummary.conflicting_green_violations}`
+    );
+  } else {
+    lines.push("No completed live run captured in this dashboard session.");
+  }
+
+  lines.push("", "Current dashboard evidence:");
+  lines.push(
+    `Safety badge: ${elements.evidenceSafety.textContent}`,
+    `Wait result badge: ${elements.evidenceWait.textContent}`,
+    `Detector fault badge: ${elements.evidenceFault.textContent}`,
+    `Busiest approach: ${elements.busiestApproach.textContent}`,
+    `Detector mismatch: ${elements.detectorMismatch.textContent}`,
+    `Examiner summary: ${elements.examinerSummary.textContent}`
+  );
+
+  const aggregate = selectedAdaptiveAggregate();
+  lines.push("", "Selected scenario benchmark:");
+  if (aggregate && aggregate.mean_wait_improvement_pct !== null && aggregate.mean_wait_improvement_pct !== undefined) {
+    const queueImprovement =
+      aggregate.mean_max_queue_improvement_pct === null || aggregate.mean_max_queue_improvement_pct === undefined
+        ? "-"
+        : `${aggregate.mean_max_queue_improvement_pct.toFixed(2)}%`;
+    lines.push(
+      `Adaptive mean wait improvement: ${aggregate.mean_wait_improvement_pct.toFixed(2)}%`,
+      `Adaptive completed delta vs fixed: ${aggregate.mean_completed_delta_vs_fixed.toFixed(2)}`,
+      `Adaptive max queue improvement: ${queueImprovement}`,
+      `Aggregate safety violations: ${aggregate.total_conflicting_green_violations}`,
+      `Benchmark runs: ${aggregate.runs}`
+    );
+  } else {
+    lines.push("Run Compare Selected or Benchmark to capture fixed/adaptive evidence.");
+  }
+
+  return lines.join("\n");
+}
+
+function downloadEvidenceText(text) {
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "traffic-light-dashboard-evidence.txt";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function copyEvidenceSummary() {
+  const text = evidenceSummaryText();
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus("Evidence copied");
+  } catch (error) {
+    downloadEvidenceText(text);
+    setStatus("Evidence downloaded");
+  }
+}
+
+function stopSimulation() {
+  if (state.socket) {
+    state.socket.close();
+    state.socket = null;
+  }
+  setStatus("Stopped");
+  setRunning(false);
+}
+
+function resetDashboard() {
+  stopSimulation();
+  setStatus("Idle");
+  resetRunView();
+}
+
 elements.runButton.addEventListener("click", runSimulation);
+elements.stopButton.addEventListener("click", stopSimulation);
+elements.resetButton.addEventListener("click", resetDashboard);
 elements.benchmarkButton.addEventListener("click", runBenchmark);
-activateSignals({ north: "red", east: "red", south: "red", west: "red" });
+elements.compareButton.addEventListener("click", runSelectedComparison);
+elements.tourButton.addEventListener("click", runDemoTour);
+elements.copyEvidenceButton.addEventListener("click", copyEvidenceSummary);
+elements.controller.addEventListener("change", updateDemoNote);
+elements.scenario.addEventListener("change", updateDemoNote);
+elements.customEnabled.addEventListener("change", updateDemoNote);
+for (const input of [elements.customNorth, elements.customEast, elements.customSouth, elements.customWest]) {
+  input.addEventListener("input", updateDemoNote);
+}
+elements.faultProfile.addEventListener("change", updateDemoNote);
+elements.duration.addEventListener("change", loadFaultProfiles);
+for (const button of elements.presetButtons) {
+  button.addEventListener("click", () => applyPreset(button.dataset.preset));
+}
+activateSignals({ north: "red", east: "red", west: "red", south: "red" });
+resetSignalCountdowns();
+clearVehicles();
 renderVehicles({ north: 0, east: 0, south: 0, west: 0 }, {});
 clearAggregateCharts();
+updateDemoNote();
 loadRuns();
+loadScenarioCatalog();
+loadFaultProfiles();

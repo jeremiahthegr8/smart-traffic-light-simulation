@@ -1,6 +1,6 @@
 # Demo Rehearsal Result
 
-Date: 10 September 2026
+Date: 15 September 2026
 
 This rehearsal checked the presentation files, saved evidence, API startup, live dashboard run,
 detector-fault run, and dashboard benchmark workflow. It was refreshed after the simulator was
@@ -11,11 +11,12 @@ corrected to use demand-rate arrivals and completed-vehicle waiting time.
 | Item | Result |
 |---|---|
 | Presentation deck | `01-presentation-deck.pptx` exists |
-| Final assembled report | `docs/final-report/final-report.md` exists |
-| Live dashboard screenshot | `output/playwright/dashboard-live-simulation.png` exists |
-| Detector-fault screenshot | `output/playwright/dashboard-fault-mismatch.png` exists |
-| Benchmark screenshot | `output/playwright/dashboard-benchmark-results.png` exists |
-| Result summary | `results/dissertation/results_summary.md` exists |
+| Final report PDF | `02-final-report-gctu-structure.pdf` exists |
+| Editable report | `02-final-report-gctu-structure.docx` exists |
+| Live dashboard screenshot | `screenshots/dashboard-live-simulation.png` exists |
+| Detector-fault screenshot | `screenshots/dashboard-fault-mismatch.png` exists |
+| Benchmark screenshot | `screenshots/dashboard-benchmark-results.png` exists |
+| Result summary | `evidence/results_summary.md` exists |
 
 ## Local Server Check
 
@@ -30,7 +31,7 @@ Checks:
 - `GET /health` returned `{"status":"ok"}`.
 - `GET /api/scenarios` returned the configured scenarios, including `balanced`, `ns-heavy`,
   `ew-heavy`, `ns-burst`, and `alternating-peak`.
-- The dashboard opened at `http://127.0.0.1:8000/` with title `Smart Traffic-Light Dashboard`.
+- The dashboard opened at `http://127.0.0.1:8000/?v=countdowns-live` with title `Smart Traffic-Light Dashboard`.
 
 ## Short Live Simulation Rehearsal
 
@@ -39,16 +40,16 @@ Settings:
 - Controller: adaptive
 - Scenario: `ns-heavy`
 - Fault profile: none
-- Duration: 30 seconds
+- Duration: 120 seconds
 - Step: 1 second
+- Playback: quick demo - 4x for screenshot capture
 - Seed: 42
 
 Observed result:
 
-- Status: complete
-- Completed vehicles: 8
-- Mean wait: 4.9 seconds
-- Max queue: 9
+- Status: streaming during screenshot capture
+- Visible vehicles entered from road edges, queued, crossed on green, and exited
+- Signal countdown cards showed the current green countdown and next red-road timing
 - Safety violations: 0
 
 This confirms that the live dashboard path works for a short presentation rehearsal. The final
@@ -61,19 +62,17 @@ Settings:
 - Controller: adaptive
 - Scenario: `ns-heavy`
 - Fault profile: `ns-stuck-high`
-- Duration: 30 seconds
+- Duration: 120 seconds
 - Step: 1 second
+- Playback: quick demo - 4x for screenshot capture
 - Seed: 42
 
 Observed result:
 
-- Status: complete
-- Completed vehicles: 14
-- Mean wait: 3.3 seconds
-- Max queue: 3
+- Status: streaming during screenshot capture
+- Detector mismatch metric became visible
 - Safety violations: 0
-- North queue/detector: 0 true queue, 80 detector demand
-- South queue/detector: 3 true queue, 80 detector demand
+- North/South detector values were forced high while true queues remained lower
 
 This confirms that the dashboard visibly separates true queue values from faulty detector
 readings.
@@ -82,14 +81,13 @@ readings.
 
 Settings:
 
-- Duration: 30 seconds
-- Step: 1 second
+- Duration: 300 seconds
+- Step: 0.5 seconds
 - Benchmark seeds: 5
 
 Observed result:
 
-- The dashboard benchmark produced 50 rows.
-- The benchmark table included fixed and adaptive rows for all five scenarios.
+- The selected scenario comparison produced fixed and adaptive rows for matching seeds.
 - Aggregate mean-wait and max-queue charts rendered.
 - The displayed benchmark rows showed zero safety violations.
 

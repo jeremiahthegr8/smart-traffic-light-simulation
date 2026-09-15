@@ -125,6 +125,16 @@ The right panel shows:
 - detector mismatch;
 - signal countdowns.
 
+## Final Screenshot Evidence
+
+Use these saved screenshots if the live demo is slow or the projector/browser fails:
+
+| Screenshot | What it proves |
+|---|---|
+| ![Live simulation](screenshots/dashboard-live-simulation.png) | The dashboard shows moving vehicles, active roads, signal lamps, countdown timers, and live metrics. |
+| ![Detector fault mismatch](screenshots/dashboard-fault-mismatch.png) | The system separates real simulated queues from faulty detector readings. |
+| ![Benchmark results](screenshots/dashboard-benchmark-results.png) | The dashboard compares fixed-time and adaptive control using matching seeds and shows aggregate charts. |
+
 ## Signal Countdown Explanation
 
 The `Signal Countdowns` panel shows the timer for each road:
@@ -292,4 +302,3 @@ Useful fallback files:
 > dashboard shows cars, queues, signal lights, countdown timers, detector demand, benchmark
 > results, and safety violations. The important engineering point is that adaptive logic changes
 > green duration, but the shared phase machine still enforces amber and all-red safety clearance.
-

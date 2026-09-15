@@ -3,81 +3,110 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Traffic Control Room — Smart Traffic-Light Simulator</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <title>Smart Traffic-Light Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css?v=signallab-repositioned-signals" />
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">
-        <h1>Traffic Control Room</h1>
-        <p class="brand-sub">Adaptive vs. fixed-time signal simulation</p>
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">SL</div>
+        <div>
+          <h1>Smart Traffic-Light Dashboard</h1>
+          <p id="connection-status">Idle</p>
+        </div>
       </div>
-      <div class="status-pill" id="status-pill">
-        <span class="status-dot" aria-hidden="true"></span>
-        <p id="connection-status">Idle</p>
-      </div>
-      <div class="topbar-actions">
-        <button id="run-button" type="button">Run simulation</button>
-        <button id="benchmark-button" type="button">Run benchmark</button>
+      <div class="topbar-actions" aria-label="Dashboard actions">
+        <button id="run-button" type="button">Run</button>
+        <button id="stop-button" type="button" disabled>Stop</button>
+        <button id="reset-button" type="button">Reset</button>
+        <button id="benchmark-button" type="button">Benchmark</button>
+        <button id="compare-button" type="button">Compare Selected</button>
+        <button id="tour-button" type="button">Run Demo Tour</button>
+        <button id="copy-evidence-button" type="button">Copy Evidence</button>
       </div>
     </header>
 
     <main class="layout">
       <section class="control-panel" aria-label="Simulation controls">
-        <h2>Console</h2>
+        <label>
+          Controller
+          <select id="controller">
+            <option value="adaptive">Adaptive</option>
+            <option value="fixed">Fixed-time</option>
+          </select>
+        </label>
+        <label>
+          Scenario
+          <select id="scenario">
+            <option value="ns-heavy">NS-heavy</option>
+            <option value="ew-heavy">EW-heavy</option>
+            <option value="balanced">Balanced</option>
+            <option value="ns-burst">NS-burst</option>
+            <option value="alternating-peak">Alternating peak</option>
+          </select>
+        </label>
+        <div class="custom-scenario" aria-label="Custom scenario controls">
+          <label class="inline-check">
+            <input id="custom-enabled" type="checkbox" />
+            Use custom arrivals
+          </label>
+          <div class="custom-rate-grid">
+            <label>North <input id="custom-north" type="number" min="0" max="120" step="1" value="18" /></label>
+            <label>East <input id="custom-east" type="number" min="0" max="120" step="1" value="6" /></label>
+            <label>South <input id="custom-south" type="number" min="0" max="120" step="1" value="17" /></label>
+            <label>West <input id="custom-west" type="number" min="0" max="120" step="1" value="5" /></label>
+          </div>
+        </div>
+        <label>
+          Fault profile
+          <select id="fault-profile">
+            <option value="none">None</option>
+            <option value="ns-stuck-high">NS stuck high</option>
+            <option value="ew-stuck-low">EW stuck low</option>
+            <option value="all-stuck-low-midrun">All stuck low mid-run</option>
+          </select>
+        </label>
+        <label>
+          Duration
+          <input id="duration" type="number" min="5" max="7200" step="5" value="120" />
+        </label>
+        <label>
+          Step
+          <input id="step" type="number" min="0.1" max="10" step="0.1" value="1" />
+        </label>
+        <label>
+          Playback speed
+          <select id="playback-speed">
+            <option value="0">Instant results</option>
+            <option value="4">Quick demo - 4x</option>
+            <option value="1" selected>Real time - 1x</option>
+            <option value="0.5">Slow detail - 0.5x</option>
+            <option value="0.25">Very slow - 0.25x</option>
+          </select>
+        </label>
+        <label>
+          Seed
+          <input id="seed" type="number" value="42" />
+        </label>
+        <label>
+          Benchmark seeds
+          <input id="benchmark-seeds" type="number" min="1" max="50" step="1" value="5" />
+        </label>
 
-        <div class="control-group">
-          <h3>Setup</h3>
-          <label>
-            Controller
-            <select id="controller">
-              <option value="adaptive">Adaptive</option>
-              <option value="fixed">Fixed-time</option>
-            </select>
-          </label>
-          <label>
-            Scenario
-            <select id="scenario">
-              <option value="ns-heavy">NS-heavy</option>
-              <option value="ew-heavy">EW-heavy</option>
-              <option value="balanced">Balanced</option>
-              <option value="ns-burst">NS-burst</option>
-              <option value="alternating-peak">Alternating peak</option>
-            </select>
-          </label>
+        <div class="demo-actions" aria-label="Quick demonstration presets">
+          <h2>Demo presets</h2>
+          <button type="button" class="preset-button" data-preset="adaptive-ns">NS-heavy adaptive</button>
+          <button type="button" class="preset-button" data-preset="adaptive-ew">EW-heavy adaptive</button>
+          <button type="button" class="preset-button" data-preset="burst">NS burst</button>
+          <button type="button" class="preset-button" data-preset="fixed">Fixed baseline</button>
+          <button type="button" class="preset-button" data-preset="fault">Detector fault</button>
         </div>
 
-        <div class="control-group">
-          <h3>Faults</h3>
-          <label>
-            Fault profile
-            <select id="fault-profile">
-              <option value="none">None</option>
-              <option value="ns-stuck-high">NS stuck high</option>
-              <option value="ew-stuck-low">EW stuck low</option>
-              <option value="all-stuck-low-midrun">All stuck low mid-run</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="control-group">
-          <h3>Timing</h3>
-          <label>
-            Duration (s)
-            <input id="duration" type="number" min="5" max="7200" step="5" value="120" />
-          </label>
-          <label>
-            Step (s)
-            <input id="step" type="number" min="0.1" max="10" step="0.1" value="1" />
-          </label>
-          <label>
-            Seed
-            <input id="seed" type="number" value="42" />
-          </label>
-          <label>
-            Benchmark seeds
-            <input id="benchmark-seeds" type="number" min="1" max="50" step="1" value="5" />
-          </label>
+        <div class="scenario-card" aria-label="Scenario details">
+          <h2>Scenario details</h2>
+          <p id="scenario-description">Loading scenario details.</p>
+          <div id="scenario-rates" class="rate-grid"></div>
+          <p id="scenario-windows" class="scenario-windows"></p>
         </div>
       </section>
 
@@ -85,10 +114,15 @@
         <div class="phase-strip">
           <strong id="phase">all_red_to_ns</strong>
           <span id="phase-time">0.0s</span>
-          <span>Reason: <span id="reason">startup</span></span>
+          <span id="reason">startup</span>
         </div>
 
         <svg class="intersection" viewBox="0 0 640 640" role="img" aria-label="Live intersection">
+          <defs>
+            <marker id="signal-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" class="signal-arrow" />
+            </marker>
+          </defs>
           <rect x="0" y="0" width="640" height="640" class="ground" />
           <rect x="260" y="0" width="120" height="640" class="road" />
           <rect x="0" y="260" width="640" height="120" class="road" />
@@ -104,29 +138,52 @@
 
           <g id="vehicle-layer"></g>
 
-          <g class="light-head north-light" transform="translate(400 198)">
+          <g class="light-head north-light" transform="translate(392 122)">
             <rect width="36" height="86" rx="8" />
             <circle id="north-red" cx="18" cy="18" r="9" class="lamp red" />
             <circle id="north-amber" cx="18" cy="43" r="9" class="lamp amber" />
             <circle id="north-green" cx="18" cy="68" r="9" class="lamp green" />
           </g>
-          <g class="light-head south-light" transform="translate(204 356)">
+          <g class="light-head south-light" transform="translate(212 432)">
             <rect width="36" height="86" rx="8" />
             <circle id="south-red" cx="18" cy="18" r="9" class="lamp red" />
             <circle id="south-amber" cx="18" cy="43" r="9" class="lamp amber" />
             <circle id="south-green" cx="18" cy="68" r="9" class="lamp green" />
           </g>
-          <g class="light-head east-light" transform="translate(356 400) rotate(-90)">
+          <g class="light-head east-light" transform="translate(432 390)">
             <rect width="36" height="86" rx="8" />
             <circle id="east-red" cx="18" cy="18" r="9" class="lamp red" />
             <circle id="east-amber" cx="18" cy="43" r="9" class="lamp amber" />
             <circle id="east-green" cx="18" cy="68" r="9" class="lamp green" />
           </g>
-          <g class="light-head west-light" transform="translate(284 204) rotate(90)">
+          <g class="light-head west-light" transform="translate(172 164)">
             <rect width="36" height="86" rx="8" />
             <circle id="west-red" cx="18" cy="18" r="9" class="lamp red" />
             <circle id="west-amber" cx="18" cy="43" r="9" class="lamp amber" />
             <circle id="west-green" cx="18" cy="68" r="9" class="lamp green" />
+          </g>
+
+          <g class="signal-guides" aria-hidden="true">
+            <line x1="410" y1="214" x2="370" y2="220" class="signal-pointer" />
+            <g id="north-signal-guide" class="signal-badge signal-badge-wide" transform="translate(422 102)">
+              <rect x="-34" y="-14" width="68" height="28" rx="4" />
+              <text y="5" text-anchor="middle">N ROAD</text>
+            </g>
+            <line x1="230" y1="426" x2="270" y2="420" class="signal-pointer" />
+            <g id="south-signal-guide" class="signal-badge signal-badge-wide" transform="translate(218 538)">
+              <rect x="-34" y="-14" width="68" height="28" rx="4" />
+              <text y="5" text-anchor="middle">S ROAD</text>
+            </g>
+            <line x1="426" y1="432" x2="420" y2="370" class="signal-pointer" />
+            <g id="east-signal-guide" class="signal-badge signal-badge-wide" transform="translate(500 434)">
+              <rect x="-34" y="-14" width="68" height="28" rx="4" />
+              <text y="5" text-anchor="middle">E ROAD</text>
+            </g>
+            <line x1="214" y1="206" x2="220" y2="270" class="signal-pointer" />
+            <g id="west-signal-guide" class="signal-badge signal-badge-wide" transform="translate(140 206)">
+              <rect x="-34" y="-14" width="68" height="28" rx="4" />
+              <text y="5" text-anchor="middle">W ROAD</text>
+            </g>
           </g>
 
           <text x="320" y="46" text-anchor="middle" class="approach-label">N</text>
@@ -137,7 +194,74 @@
       </section>
 
       <section class="metrics-panel" aria-label="Metrics">
-        <h2>Telemetry</h2>
+        <div class="demo-note" aria-label="Current demonstration focus">
+          <span>What this proves</span>
+          <strong id="demo-title">Adaptive demand response</strong>
+          <p id="demo-description">Run an adaptive NS-heavy scenario to show demand-responsive green timing, visible queues, and zero safety violations.</p>
+        </div>
+
+        <div class="evidence-strip" aria-label="Evidence status">
+          <div><span>Safety</span><strong id="evidence-safety">Not run</strong></div>
+          <div><span>Wait result</span><strong id="evidence-wait">Benchmark needed</strong></div>
+          <div><span>Detector fault</span><strong id="evidence-fault">None selected</strong></div>
+        </div>
+
+        <div class="signal-countdown-panel" aria-label="Traffic-light countdowns">
+          <div class="section-heading compact">
+            <h2>Signal Countdowns</h2>
+            <span id="countdown-event">Waiting for run</span>
+          </div>
+          <div class="countdown-grid">
+            <article id="north-countdown-card" class="countdown-card" data-colour="red">
+              <span>N Road</span>
+              <strong id="north-countdown-remaining">--</strong>
+              <em id="north-countdown-state">red</em>
+              <small id="north-countdown-next">green in --</small>
+              <small id="north-countdown-mode">timer idle</small>
+            </article>
+            <article id="east-countdown-card" class="countdown-card" data-colour="red">
+              <span>E Road</span>
+              <strong id="east-countdown-remaining">--</strong>
+              <em id="east-countdown-state">red</em>
+              <small id="east-countdown-next">green in --</small>
+              <small id="east-countdown-mode">timer idle</small>
+            </article>
+            <article id="south-countdown-card" class="countdown-card" data-colour="red">
+              <span>S Road</span>
+              <strong id="south-countdown-remaining">--</strong>
+              <em id="south-countdown-state">red</em>
+              <small id="south-countdown-next">green in --</small>
+              <small id="south-countdown-mode">timer idle</small>
+            </article>
+            <article id="west-countdown-card" class="countdown-card" data-colour="red">
+              <span>W Road</span>
+              <strong id="west-countdown-remaining">--</strong>
+              <em id="west-countdown-state">red</em>
+              <small id="west-countdown-next">green in --</small>
+              <small id="west-countdown-mode">timer idle</small>
+            </article>
+          </div>
+        </div>
+
+        <div class="fault-card" aria-label="Fault profile details">
+          <span>Fault profile details</span>
+          <p id="fault-description">No detector fault is selected.</p>
+        </div>
+
+        <div class="examiner-card" aria-label="Examiner summary">
+          <span>Examiner summary</span>
+          <p id="examiner-summary">Run a simulation or comparison to generate a plain-English result summary.</p>
+        </div>
+
+        <div class="presenter-cues" aria-label="Presenter cues">
+          <span>Presenter cues</span>
+          <ol>
+            <li>Run adaptive heavy demand and point to the busiest approach.</li>
+            <li>Switch to a detector fault and show queue versus detector mismatch.</li>
+            <li>Click Compare Selected to prove fixed-time versus adaptive performance.</li>
+          </ol>
+        </div>
+
         <div class="metric-grid">
           <article>
             <span>Completed</span>
@@ -159,10 +283,18 @@
             <span>Fault profile</span>
             <strong id="fault-active">none</strong>
           </article>
+          <article>
+            <span>Busiest approach</span>
+            <strong id="busiest-approach" class="metric-small">-</strong>
+          </article>
+          <article>
+            <span>Detector mismatch</span>
+            <strong id="detector-mismatch">0</strong>
+          </article>
         </div>
 
         <div class="queue-list">
-          <div class="queue-header"><span>Approach</span><span>Queue</span><span>Count</span><span>Detector</span></div>
+          <div class="queue-header"><span></span><span></span><span>Queue</span><span>Detector</span></div>
           <div class="queue-row"><span>North</span><meter id="queue-north" min="0" max="80" value="0"></meter><strong id="queue-north-value">0</strong><strong id="demand-north-value">0</strong></div>
           <div class="queue-row"><span>East</span><meter id="queue-east" min="0" max="80" value="0"></meter><strong id="queue-east-value">0</strong><strong id="demand-east-value">0</strong></div>
           <div class="queue-row"><span>South</span><meter id="queue-south" min="0" max="80" value="0"></meter><strong id="queue-south-value">0</strong><strong id="demand-south-value">0</strong></div>
@@ -177,7 +309,7 @@
       </section>
 
       <section class="runs-panel" aria-label="Recent runs">
-        <h2>Recent runs</h2>
+        <h2>Recent Runs</h2>
         <table>
           <thead>
             <tr>
@@ -193,7 +325,7 @@
 
       <section class="benchmark-panel" aria-label="Fixed versus adaptive benchmark">
         <div class="section-heading">
-          <h2>Fixed vs adaptive</h2>
+          <h2>Fixed vs Adaptive</h2>
           <span id="benchmark-status">Not run</span>
         </div>
         <table>
@@ -213,17 +345,17 @@
         </table>
         <div class="benchmark-aggregates" aria-label="Benchmark aggregate charts">
           <div class="chart-panel">
-            <div class="chart-title">Mean wait by scenario</div>
+            <div class="chart-title">Mean Wait by Scenario</div>
             <svg id="benchmark-wait-chart" class="benchmark-chart" viewBox="0 0 760 260" role="img" aria-label="Mean wait aggregate chart"></svg>
           </div>
           <div class="chart-panel">
-            <div class="chart-title">Max queue by scenario</div>
+            <div class="chart-title">Max Queue by Scenario</div>
             <svg id="benchmark-queue-chart" class="benchmark-chart" viewBox="0 0 760 260" role="img" aria-label="Max queue aggregate chart"></svg>
           </div>
         </div>
       </section>
     </main>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=signallab-countdowns"></script>
   </body>
 </html>

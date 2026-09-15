@@ -52,7 +52,7 @@ Run tests if there is time:
 Expected result:
 
 ```text
-24 passed, 1 warning
+27 passed, 1 warning
 ```
 
 Start the dashboard:
@@ -64,7 +64,7 @@ Start the dashboard:
 Open:
 
 ```text
-http://127.0.0.1:8000/
+http://127.0.0.1:8000/?v=countdowns-live
 ```
 
 If port 8000 is busy, use port 8001:
@@ -134,6 +134,7 @@ In the dashboard, use:
 | Duration | 120 |
 | Step | 1 |
 | Seed | 42 |
+| Playback speed | Real time - 1x |
 
 Click `Run`.
 
@@ -156,7 +157,7 @@ Say:
 
 Screenshot fallback:
 
-- `output/playwright/dashboard-live-simulation.png`
+- `presentation-ready/screenshots/dashboard-live-simulation.png`
 
 ## Segment 4: Detector-Fault Behaviour
 
@@ -170,6 +171,7 @@ In the dashboard, use:
 | Duration | 120 |
 | Step | 1 |
 | Seed | 42 |
+| Playback speed | Real time - 1x |
 
 Click `Run`.
 
@@ -188,7 +190,7 @@ Say:
 
 Screenshot fallback:
 
-- `output/playwright/dashboard-fault-mismatch.png`
+- `presentation-ready/screenshots/dashboard-fault-mismatch.png`
 
 ## Segment 5: Benchmark Results
 
@@ -199,13 +201,13 @@ In the dashboard, use:
 | Duration | 300 |
 | Step | 0.5 |
 | Seed | 1 |
-| Benchmark seeds | 10 |
+| Benchmark seeds | 5 or 10 |
 
-Click `Benchmark`.
+Click `Compare Selected` for the selected scenario, or click `Benchmark` for all scenarios.
 
 Point out:
 
-- 100 row-level runs: 5 scenarios x 10 seeds x 2 controllers
+- selected comparison rows or full benchmark rows, depending on the button used
 - fixed and adaptive rows use matching seeds
 - wait improvement column
 - aggregate mean-wait chart
@@ -220,18 +222,18 @@ Say:
 
 Screenshot fallback:
 
-- `output/playwright/dashboard-benchmark-results.png`
+- `presentation-ready/screenshots/dashboard-benchmark-results.png`
 
 ## Segment 6: Generated Evidence
 
 Open:
 
-- `results/dissertation/results_summary.md`
-- `results/dissertation/benchmark_summary.csv`
-- `results/dissertation/failure_modes.csv`
-- `results/dissertation/mean_wait.svg`
-- `results/dissertation/max_queue.svg`
-- `results/dissertation/completed.svg`
+- `presentation-ready/evidence/results_summary.md`
+- `presentation-ready/evidence/benchmark_summary.csv`
+- `presentation-ready/evidence/failure_modes.csv`
+- `presentation-ready/evidence/mean_wait.svg`
+- `presentation-ready/evidence/max_queue.svg`
+- `presentation-ready/evidence/completed.svg`
 
 Say:
 
@@ -284,22 +286,23 @@ Say:
 | Purpose | File |
 |---|---|
 | Presentation deck | `01-presentation-deck.pptx` |
-| Final assembled report | `docs/final-report/final-report.md` |
+| Final report PDF | `02-final-report-gctu-structure.pdf` |
+| Editable report | `02-final-report-gctu-structure.docx` |
 | Background | `docs/proposal/background-literature-review.md` |
 | Requirements | `docs/proposal/requirements-specification.md` |
 | Methodology | `docs/proposal/methodology-implementation.md` |
 | Results | `docs/proposal/results-evaluation.md` |
-| Live screenshot | `output/playwright/dashboard-live-simulation.png` |
-| Fault screenshot | `output/playwright/dashboard-fault-mismatch.png` |
-| Benchmark screenshot | `output/playwright/dashboard-benchmark-results.png` |
-| Final result summary | `results/dissertation/results_summary.md` |
+| Live screenshot | `presentation-ready/screenshots/dashboard-live-simulation.png` |
+| Fault screenshot | `presentation-ready/screenshots/dashboard-fault-mismatch.png` |
+| Benchmark screenshot | `presentation-ready/screenshots/dashboard-benchmark-results.png` |
+| Final result summary | `presentation-ready/evidence/results_summary.md` |
 
 ## Emergency Fallback Plan
 
 If the live dashboard fails during the presentation:
 
 1. Show the saved dashboard screenshots.
-2. Show `results/dissertation/results_summary.md`.
+2. Show `presentation-ready/evidence/results_summary.md`.
 3. Run `.\.venv\Scripts\python.exe -m pytest`.
 4. Explain that the screenshots and CSVs were generated from the same dashboard and scripts.
 

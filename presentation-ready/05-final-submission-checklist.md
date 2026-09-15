@@ -6,14 +6,16 @@ format.
 
 ## Completed Project Evidence
 
-- Final assembled report: `docs/final-report/final-report.md`
-- GCTU five-chapter report source: `docs/final-report/final-report-gctu-structure.md`
-- Editable Word report export: `docs/final-report/final-report-gctu-structure.docx`
-- PDF report export: `docs/final-report/final-report-gctu-structure.pdf`
-- Presentation deck: `docs/presentation/traffic-light-demo-corrected.pptx`
-- Demonstration script: `docs/proposal/demonstration-script.md`
-- Demo rehearsal result: `docs/proposal/demo-rehearsal-result.md`
-- Institution format reference: `docs/proposal/institution-format-reference.md`
+- Final report source: `02-final-report-gctu-structure.md`
+- Editable Word report export: `02-final-report-gctu-structure.docx`
+- PDF report export: `02-final-report-gctu-structure.pdf`
+- Presentation deck: `01-presentation-deck.pptx`
+- Demonstration script: `03-demonstration-script.md`
+- Demo rehearsal result: `04-demo-rehearsal-result.md`
+- Institution format reference: `06-institution-format-reference.md`
+- Final run manual: `10-simulation-run-manual.md`
+- Dashboard screenshots: `screenshots/`
+- CSV/chart evidence: `evidence/`
 - Requirements specification: `docs/proposal/requirements-specification.md`
 - Implementation plan: `docs/proposal/implementation-plan.md`
 - Generated result package command: `scripts/dissertation_results.py`
@@ -35,8 +37,8 @@ These depend on the school template or supervisor instructions and cannot be ful
 the repository alone.
 
 - Required title-page format and programme name.
-- Student names, student IDs, and supervisor name have been added to `docs/final-report/final-report-gctu-structure.md`.
-- If title-page details change, regenerate `docs/final-report/final-report-gctu-structure.docx` and `docs/final-report/final-report-gctu-structure.pdf`.
+- Student names, student IDs, and supervisor name have been added to `02-final-report-gctu-structure.md`.
+- If title-page details change, regenerate `02-final-report-gctu-structure.docx` and `02-final-report-gctu-structure.pdf`.
 - Required declaration, acknowledgement, abstract, and table-of-contents wording.
 - Required citation style, such as IEEE, Harvard, APA, or departmental style.
 - Required page numbering, margins, line spacing, and font.
@@ -47,8 +49,8 @@ the repository alone.
 
 ## Final Demo Rehearsal
 
-- Review the latest rehearsal result in `docs/proposal/demo-rehearsal-result.md`.
-- Open `docs/presentation/traffic-light-demo-corrected.pptx`.
+- Review the latest rehearsal result in `04-demo-rehearsal-result.md`.
+- Open `01-presentation-deck.pptx`.
 - Start the dashboard with `.\.venv\Scripts\python.exe -m uvicorn trafficlight.api.app:app --host 127.0.0.1 --port 8000`.
 - Run one adaptive live simulation with `ns-heavy`.
 - Show one detector-fault run using `ns-stuck-high`.

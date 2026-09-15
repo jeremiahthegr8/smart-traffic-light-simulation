@@ -36,11 +36,11 @@ traffic-light controller against a fixed-time baseline under repeatable simulate
 | Safe phase machine | `src/trafficlight/domain/controller.py`, `src/trafficlight/domain/safety.py` |
 | Virtual detector model | `src/trafficlight/simulation/engine.py`, `src/trafficlight/simulation/faults.py` |
 | Fair fixed/adaptive benchmark | `src/trafficlight/simulation/benchmark.py` |
-| Final benchmark results | `results/dissertation/benchmark_summary.csv`, `results/dissertation/results_summary.md` |
-| Detector-fault results | `results/dissertation/failure_modes.csv` |
-| Live visual proof | `output/playwright/dashboard-live-simulation.png` |
-| Fault visual proof | `output/playwright/dashboard-fault-mismatch.png` |
-| Regression tests | `tests/`, latest result: `24 passed, 1 warning` |
+| Final benchmark results | `presentation-ready/evidence/benchmark_summary.csv`, `presentation-ready/evidence/results_summary.md` |
+| Detector-fault results | `presentation-ready/evidence/failure_modes.csv` |
+| Live visual proof | `presentation-ready/screenshots/dashboard-live-simulation.png` |
+| Fault visual proof | `presentation-ready/screenshots/dashboard-fault-mismatch.png` |
+| Regression tests | `tests/`, latest result: `27 passed, 1 warning` |
 
 ## Strong Closing Statement
 

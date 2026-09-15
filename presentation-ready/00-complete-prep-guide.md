@@ -246,7 +246,7 @@ Run tests:
 Expected:
 
 ```text
-24 passed, 1 warning
+27 passed, 1 warning
 ```
 
 Start dashboard:
@@ -258,7 +258,7 @@ Start dashboard:
 Open:
 
 ```text
-http://127.0.0.1:8000/
+http://127.0.0.1:8000/?v=countdowns-live
 ```
 
 If port 8000 is busy, use port 8001.

@@ -24,8 +24,8 @@ are institution-specific formatting and submission rules.
 
 ## Prepared Files
 
-- Editable report: `docs/final-report/final-report-gctu-structure.docx`
-- PDF report: `docs/final-report/final-report-gctu-structure.pdf`
+- Editable report: `02-final-report-gctu-structure.docx`
+- PDF report: `02-final-report-gctu-structure.pdf`
 - Presentation deck: `docs/presentation/traffic-light-demo-corrected.pptx`
 - Submission folder: `submission/`
 - Presentation folder: `presentation-ready/`

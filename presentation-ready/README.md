@@ -24,6 +24,16 @@ Use this folder for the project defence or viva.
 - `screenshots/`: fallback dashboard screenshots.
 - `evidence/`: CSV summaries, SVG charts, and final result summary.
 
+## Final Screenshot Evidence
+
+These screenshots were refreshed from the local dashboard on 15 September 2026.
+
+| Screenshot | Shows |
+|---|---|
+| ![Live simulation](screenshots/dashboard-live-simulation.png) | Adaptive live run with vehicles, road labels, signal countdowns, and queue telemetry |
+| ![Detector fault mismatch](screenshots/dashboard-fault-mismatch.png) | Fault profile evidence showing true queue values separated from faulty detector demand |
+| ![Benchmark results](screenshots/dashboard-benchmark-results.png) | Fixed-vs-adaptive comparison rows and aggregate charts |
+
 ## Live Demo Command
 
 ```powershell
